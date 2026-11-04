@@ -158,7 +158,9 @@ test("changed constraints can reduce hours without changing needs or another pha
     end: 840,
     kind: "unavailable",
   });
-  assert.ok(flexibleErrors(edited).some((error) => error.includes("outside")));
+  assert.ok(
+    flexibleErrors(edited).some((error) => error.includes("unavailable")),
+  );
   const fitted = adaptToAvailability(edited);
   assert.equal(scheduledHours(fitted), 5);
   assert.equal(scheduledHours(initial), 10);

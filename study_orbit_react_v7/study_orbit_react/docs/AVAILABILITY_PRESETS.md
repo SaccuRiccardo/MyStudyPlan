@@ -45,7 +45,7 @@ when opening the new builder.
 
 The effort priorities (Intensive, High effort, Steady, Maintenance) only provide initial
 needs. Manually requested hours take priority over those suggestions, including when sharing scarce time. Recommendations and generated sessions
-use whole or half hours only (for example, 12 or 12.5 hours). Each course gets one
+use whole or half hours only (for example, 12 or 12.5 hours). Autofill gives each course one
 continuous stretch per study day; a gap ends that stretch. **Fill timetable** tries
 several combinations to place useful study time while keeping locks and avoiding
 scattered repeats. New study stretches must last at least **90 minutes**; among
@@ -166,3 +166,18 @@ study window on that day, continuing directly from a preceding session when spac
 allows. Change their subjects and times as needed. The preset remains an independent
 availability copy. Fill deliberately replaces unlocked sessions, so lock any manual
 choices you want to retain before requesting suggestions.
+
+
+## Save the plan you actually entered
+
+The manual timetable follows your availability by default and keeps existing
+subject assignments while availability changes refresh the blank rows. Split a
+row to allocate its time between subjects. If all initial periods are occupied,
+Add time slot appends editable extra time; you choose its subject and times.
+
+Goals never require an exact match. Review shows how many hours each subject is
+above or below its goal and explicitly allows saving your timetable as entered.
+Extra time outside initial study windows, repeated daily courses and minute-level
+manual durations are advice rather than save barriers. Autofill retains its own
+long-session rules. Conflicts with unavailable periods, overlapping assigned
+sessions and invalid start/end values remain errors with specific corrections.

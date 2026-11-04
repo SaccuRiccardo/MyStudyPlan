@@ -245,23 +245,27 @@ test("disjoint user locks are preserved as reported exceptions and do not create
   );
 });
 
-test("manual repeated courses and minute-level goals are flagged before saving", () => {
+test("manual session choices are warnings while invalid goal formats remain actionable", () => {
   const input = phase([{ start: 540, end: 1080 }], { math: 2 });
   input.slots = [
     { id: "a", day: 0, start: 540, end: 600, subjectId: "math" },
     { id: "b", day: 0, start: 840, end: 900, subjectId: "math" },
   ];
   assert.ok(
-    flexibleErrors(input).some((error) => error.includes("separate sessions")),
+    planningWarnings(input).some((error) =>
+      error.includes("separate sessions"),
+    ),
   );
   input.targetHours.math = 12.993;
   assert.ok(
     flexibleErrors(input).some((error) => error.includes("whole or half")),
   );
+  input.targetHours.math = 2;
   input.slots = [{ id: "c", day: 0, start: 540, end: 580, subjectId: "math" }];
+  assert.deepEqual(flexibleErrors(input), []);
   assert.ok(
-    flexibleErrors(input).some((error) =>
-      error.includes("Study sessions must"),
+    planningWarnings(input).some((warning) =>
+      warning.includes("shorter than 90"),
     ),
   );
 });

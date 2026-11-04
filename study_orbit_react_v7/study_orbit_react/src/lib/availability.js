@@ -26,11 +26,25 @@ export function presetErrors(preset) {
     errors.push("Study notes must be text.");
   if (!preset || typeof preset.name !== "string" || !preset.name.trim())
     errors.push("Give this preset a name.");
-  if (
-    !Array.isArray(preset?.windows) ||
-    preset.windows.some((window) => !validWindow(window))
-  )
-    errors.push("Use valid days and times, with each window at most 12 hours.");
+  if (!Array.isArray(preset?.windows))
+    errors.push("Add study periods in Availability before saving this preset.");
+  else
+    for (const [index, window] of preset.windows.entries())
+      if (!validWindow(window)) {
+        const day =
+          [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+          ][window?.day] || "Unknown day";
+        errors.push(
+          `${day}, period ${index + 1}: check both times. The end must be after the start, with no more than 12 hours in one period. If you study past midnight, set the end to +1 day; split longer periods into rows.`,
+        );
+      }
   if (
     Array.isArray(preset?.windows) &&
     new Set(preset.windows.map((window) => window?.id)).size !==

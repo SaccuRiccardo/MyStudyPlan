@@ -2,13 +2,13 @@ import {
   clone,
   hoursBySubject,
   targetSum,
-  validatePhase,
+  TIERS,
   scheduledHours,
   TIER_WEIGHTS,
   slotsOverlap,
 } from "./planner.js";
 import { studyWindows, validWindow } from "./availability.js";
-import { DAYS, formatHours } from "./time.js";
+import { DAYS, formatHours, formatSlotTime } from "./time.js";
 import {
   halfHourUnits,
   roundHalfHours,
@@ -94,88 +94,96 @@ export function adaptToAvailability(phase) {
 
 /** @brief Validate real timetable errors while treating requested hours as flexible goals. */
 export function flexibleErrors(phase) {
-  const actual = hoursBySubject(phase);
-  const errors = validatePhase({
-    ...phase,
-    totalTarget: Math.max(0.5, scheduledHours(phase)),
-    targetHours: actual,
-  }).filter(
-    (error) =>
-      !error.startsWith("Subject targets") &&
-      !error.startsWith("Weekly hours") &&
-      error !== "Add at least one study block.",
-  );
-  if (
-    phase.subjects.some(
-      (subject) => !isHalfHourGoal(phase.targetHours[subject.id]),
-    )
-  )
+  const errors = [];
+  if (!phase.name?.trim())
+    errors.push("Enter a phase name in Review before saving.");
+  if (!phase.subjects.length)
     errors.push(
-      "Use whole or half hours for each subject (for example, 12 or 12.5).",
+      "Add at least one subject in Subjects, then choose it for your timetable sessions.",
     );
-  if (
-    !Array.isArray(phase.availability?.windows) ||
-    phase.availability.windows.some((window) => !validWindow(window))
-  )
-    errors.push("Correct the invalid availability times.");
-  if (
-    phase.slots
-      .filter((slot) => slot.fixed || slot.protected)
-      .some((slot) =>
-        (phase.availability?.windows || []).some(
-          (window) =>
-            window.kind === "unavailable" && slotsOverlap(slot, window),
-        ),
-      )
-  )
+  for (const subject of phase.subjects) {
+    if (!subject.name?.trim())
+      errors.push("A subject has no name. Open Subjects and enter its name.");
+    if (!TIERS.includes(subject.tier))
+      errors.push(`${subject.name}: choose an effort priority in Priorities.`);
+    if (!isHalfHourGoal(phase.targetHours[subject.id]))
+      errors.push(
+        `${subject.name}: enter a nonnegative weekly goal in whole or half hours, such as 2, 2.5 or 3. This is a goal, not a required timetable total.`,
+      );
+  }
+  const windows = phase.availability?.windows;
+  if (!Array.isArray(windows))
     errors.push(
-      "A fixed session conflicts with unavailable time. Adjust that commitment or the university constraint before saving.",
+      "Open Availability and add study periods before building the timetable.",
     );
-  const usable = studyWindows(phase.availability?.windows || []);
-  for (const slot of phase.slots.filter(
-    (slot) => !slot.fixed && !slot.protected,
-  )) {
+  else
+    for (const [index, window] of windows.entries())
+      if (!validWindow(window))
+        errors.push(
+          `${DAYS[window?.day] || "Availability"}, period ${index + 1}: enter a valid start and later end, at most 12 hours apart. For a period crossing midnight, choose +1 day for the end.`,
+        );
+  const valid = [];
+  for (const slot of phase.slots) {
+    const label = sessionLabel(phase, slot);
     if (
-      !usable.some(
-        (window) =>
-          window.day === slot.day &&
-          window.start <= slot.start &&
-          window.end >= slot.end,
-      )
+      !Number.isInteger(slot.day) ||
+      slot.day < 0 ||
+      slot.day > 6 ||
+      !Number.isFinite(slot.start) ||
+      !Number.isFinite(slot.end) ||
+      slot.start < 0 ||
+      slot.end > 2880 ||
+      slot.end <= slot.start ||
+      slot.end - slot.start > 720
     ) {
       errors.push(
-        "A flexible session falls outside study availability or inside unavailable time. Refit the timetable or edit availability.",
+        `${label}: correct the start/end times. The end must be later than the start, and one session can last at most 12 hours. For overnight study choose +1 day for the end; split longer sessions.`,
       );
-      break;
+      continue;
+    }
+    valid.push(slot);
+    if (!phase.subjects.some((subject) => subject.id === slot.subjectId))
+      errors.push(
+        `${label}: choose a subject from the Subject menu, or remove this row to leave the time free.`,
+      );
+    for (const blocked of (windows || []).filter(
+      (window) => window.kind === "unavailable" && validWindow(window),
+    )) {
+      if (slotsOverlap(slot, blocked))
+        errors.push(
+          `${label}: ${slot.fixed || slot.protected ? "This fixed session conflicts" : "This session conflicts"} with unavailable time on ${DAYS[blocked.day]} ${formatSlotTime(blocked.start)}–${formatSlotTime(blocked.end)}. ${slot.protected ? "Move the unavailable period or remove the protected commitment through its subject." : "Unlock it if locked, then move or shorten the session; or correct that blocked period in Availability."}`,
+        );
     }
   }
+  for (let i = 0; i < valid.length; i++)
+    for (let j = i + 1; j < valid.length; j++)
+      if (slotsOverlap(valid[i], valid[j]))
+        errors.push(
+          `${sessionLabel(phase, valid[i])} overlaps ${sessionLabel(phase, valid[j])}. Move, shorten, split or remove one of these sessions in Timetable. Unlock it first if needed.`,
+        );
+  if (new Set(phase.slots.map((slot) => slot.id)).size !== phase.slots.length)
+    errors.push(
+      "Two timetable rows share the same identifier. Remove one of the duplicated rows and add it again.",
+    );
   if (
-    phase.slots.some(
-      (slot) =>
-        !slot.fixed && !slot.protected && (slot.end - slot.start) % 30 !== 0,
-    )
+    new Set(phase.subjects.map((subject) => subject.id)).size !==
+    phase.subjects.length
   )
     errors.push(
-      "Study sessions must last whole or half hours. Use Fill timetable to replace older minute-level sessions.",
+      "A subject is duplicated in this phase. Remove the duplicate in Subjects.",
     );
-  for (let day = 0; day < 7; day++)
-    for (const subject of phase.subjects) {
-      if (
-        subjectRuns(phase.slots, day, subject.id).length > 1 &&
-        phase.slots.some(
-          (slot) =>
-            slot.day === day &&
-            slot.subjectId === subject.id &&
-            !slot.fixed &&
-            !slot.protected,
-        )
-      ) {
-        errors.push(
-          `${subject.name} has separate sessions on ${DAYS[day]}. Keep one continuous stretch, or use Fill timetable.`,
-        );
-      }
-    }
   return [...new Set(errors)];
+}
+
+function sessionLabel(phase, slot) {
+  const name =
+    phase.subjects.find((subject) => subject.id === slot.subjectId)?.name ||
+    "Unassigned session";
+  const time =
+    Number.isFinite(slot.start) && Number.isFinite(slot.end)
+      ? `${formatSlotTime(slot.start)}–${formatSlotTime(slot.end)}`
+      : "missing time";
+  return `${DAYS[slot.day] || "Unknown day"} ${time} (${name})`;
 }
 
 /** @brief Describe unmet needs honestly without preventing a useful partial semester plan. */
@@ -187,9 +195,28 @@ export function planningWarnings(phase) {
       placed = actual[subject.id] || 0;
     if (Math.abs(wanted - placed) > 1 / 120)
       warnings.push(
-        `${subject.name}: ${formatHours(placed)}h scheduled / ${formatHours(wanted)}h wanted.`,
+        `${subject.name}: ${formatHours(placed)}h scheduled / ${formatHours(wanted)}h goal (${formatHours(Math.abs(wanted - placed))}h ${placed < wanted ? "below" : "above"} goal). You can save this timetable exactly as entered; matching the goal is optional.`,
       );
   }
+  const usable = studyWindows(phase.availability?.windows || []);
+  for (const slot of phase.slots)
+    if (
+      !usable.some(
+        (window) =>
+          window.day === slot.day &&
+          window.start <= slot.start &&
+          window.end >= slot.end,
+      )
+    )
+      warnings.push(
+        `${sessionLabel(phase, slot)} is outside the initial study availability. You can keep and save this extra time, or adjust the session or availability to match.`,
+      );
+  for (let day = 0; day < 7; day++)
+    for (const subject of phase.subjects)
+      if (subjectRuns(phase.slots, day, subject.id).length > 1)
+        warnings.push(
+          `${subject.name} has separate sessions on ${DAYS[day]}. Your manual sessions can be saved; a continuous stretch is only a recommendation used by autofill.`,
+        );
   const fixed = phase.slots.filter((slot) => slot.fixed || slot.protected);
   const capacity =
     fixed.reduce((sum, slot) => sum + (slot.end - slot.start) / 60, 0) +

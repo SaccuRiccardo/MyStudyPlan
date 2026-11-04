@@ -1,6 +1,8 @@
 import {
   copyAvailabilityRows,
   assignedTimetable,
+  syncAvailabilityRows,
+  splitTimetableRow,
 } from "../lib/manualTimetable.js";
 import { roundHalfHours, isHalfHourGoal } from "../lib/halfHours.js";
 import AvailabilityEditor from "./AvailabilityEditor.jsx";
@@ -138,7 +140,7 @@ export default function PhasePlanner({
   const update = (fn) => {
     setDraft((current) => {
       const next = clone(current);
-      return fn(next) || next;
+      return syncAvailabilityRows(fn(next) || next);
     });
     setError("");
   };
@@ -192,12 +194,9 @@ export default function PhasePlanner({
       return;
     if (patch.fixed && !slot.subjectId)
       return setError("Choose a subject before locking this session.");
-    if (
-      patch.fixed &&
-      (slot.end <= slot.start || (slot.end - slot.start) % 30 !== 0)
-    )
+    if (patch.fixed && (slot.end <= slot.start || slot.end - slot.start > 720))
       return setError(
-        "Use a whole or half-hour duration before locking this session.",
+        "The end must be after the start and each session must be at most 12 hours. For overnight study, set the end to +1 day before locking.",
       );
     update((d) => {
       const item = d.slots.find((item) => item.id === slotId);
@@ -218,16 +217,38 @@ export default function PhasePlanner({
       draft.availability?.windows || [],
       draft.slots,
     ).find((window) => window.day === day && window.end - window.start >= 30);
-    if (!available)
+    if (!available) {
+      const freeRow = draft.slots.find(
+        (slot) =>
+          slot.day === day &&
+          !slot.subjectId &&
+          !slot.fixed &&
+          !slot.protected &&
+          slot.end - slot.start >= 2,
+      );
+      if (freeRow) {
+        setDraft((current) => splitTimetableRow(current, freeRow.id));
+        return;
+      }
+    }
+    const start =
+      available?.start ??
+      Math.max(
+        540,
+        ...draft.slots
+          .filter((slot) => slot.day === day)
+          .map((slot) => slot.end),
+      );
+    if (start >= 2880)
       return setError(
-        "No free study availability on that day. Add or extend availability first.",
+        `${DAYS[day]} already reaches the end of +1 day. Shorten or split a session, or add time on another day.`,
       );
     update((d) => {
       d.slots.push({
         id: uid(),
         day,
-        start: available.start,
-        end: Math.min(available.start + 120, available.end),
+        start,
+        end: Math.min(start + 120, available?.end ?? 2880),
         subjectId: "",
         fixed: false,
       });
@@ -265,7 +286,7 @@ export default function PhasePlanner({
         requestAnimationFrame(() => setTimeout(resolve, 0)),
       );
       const next = adaptToAvailability(draft);
-      setDraft(next);
+      setDraft(copyAvailabilityRows(next));
       setStep(3);
       setVisited((value) => Math.max(3, value));
       setFillNotice(
@@ -382,7 +403,9 @@ export default function PhasePlanner({
                       );
                       if (selected) {
                         setDraft((current) =>
-                          useAvailability(current, selected),
+                          syncAvailabilityRows(
+                            useAvailability(current, selected),
+                          ),
                         );
                         setPresetNotice("Preset copied into this phase.");
                       }
@@ -857,6 +880,11 @@ export default function PhasePlanner({
                                 >
                                   <option value="0">Today</option>
                                   <option value="1">+1 day</option>
+                                  {parts.offset === "2" && (
+                                    <option value="2">
+                                      +2 days (midnight)
+                                    </option>
+                                  )}
                                 </select>
                               </span>
                             </label>
@@ -869,6 +897,20 @@ export default function PhasePlanner({
                             </span>
                           ) : (
                             <>
+                              <button
+                                className="secondary-button"
+                                disabled={
+                                  !!slot.fixed || slot.end - slot.start < 2
+                                }
+                                aria-label={`Split ${day} ${formatSlotTime(slot.start)} session`}
+                                onClick={() =>
+                                  setDraft((current) =>
+                                    splitTimetableRow(current, slot.id),
+                                  )
+                                }
+                              >
+                                Split
+                              </button>
                               <button
                                 className={`secondary-button lock-session ${slot.fixed ? "is-locked" : ""}`}
                                 aria-pressed={!!slot.fixed}
@@ -997,7 +1039,9 @@ export default function PhasePlanner({
                 ) : (
                   <>
                     <CheckCircle2 size={16} /> Your timetable has no conflicts.
-                    Goals are flexible, and spare time can remain free.
+                    Your timetable is saved as entered. Differences of any size
+                    from weekly goals do not prevent saving. Spare time can
+                    remain free.
                   </>
                 )}
               </div>

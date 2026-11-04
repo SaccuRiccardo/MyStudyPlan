@@ -161,3 +161,21 @@ sessions manually. Suggestions never run automatically: use **Suggest hours by
 priority** or **Fill timetable** when you want help. Fill replaces unlocked
 sessions; lock manual choices first if you want to keep them. Availability rows
 sort after you leave a completed row, and new periods start at the previous end.
+
+
+## Your timetable takes precedence
+
+Availability periods stay synchronized with the manual timetable as you edit or
+choose a preset. **Split** divides a period without assigning the new part to a
+subject. **Add time slot** can divide a remaining blank period, use free study
+availability, or append extra editable time when the initial periods are full.
+
+Weekly-hour goals are advisory. The app saves your assigned timetable exactly as
+entered, even when it differs by several hours, includes separate same-course
+sessions, or adds study time outside the original study windows. Review explains
+these differences without blocking Save. Shorter or minute-level manual sessions
+are also allowed; the 90-minute minimum and half-hour increments apply to autofill.
+
+Actual overlaps, invalid times and conflicts with explicitly unavailable time must
+be fixed. Errors identify the day, times and subject, then explain whether to move,
+shorten, unlock or split a session, adjust the blocked period, or select +1 day.
