@@ -198,3 +198,10 @@ The Windows launcher is `../../Start Study Orbit.cmd`; its service supervisor is
 starts the same services without opening a browser. The existing Bash/macOS
 launchers remain supported. None of the launchers modifies study data during
 package repair.
+
+
+The timetable copies your availability into **unassigned rows** with the same
+period boundaries. Choose a subject for each row, shorten a row and add another
+session in the freed time, or leave it unassigned to keep that period free.
+Only assigned sessions are saved and counted in progress. Reopening a phase keeps
+your subject choices and exposes the remaining availability for manual planning.

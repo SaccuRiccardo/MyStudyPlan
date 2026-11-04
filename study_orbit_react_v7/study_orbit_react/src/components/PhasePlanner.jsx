@@ -1,3 +1,7 @@
+import {
+  copyAvailabilityRows,
+  assignedTimetable,
+} from "../lib/manualTimetable.js";
 import { roundHalfHours, isHalfHourGoal } from "../lib/halfHours.js";
 import AvailabilityEditor from "./AvailabilityEditor.jsx";
 import {
@@ -114,12 +118,14 @@ export default function PhasePlanner({
               kind: "study",
             }))
         : [];
-      return useAvailability(
-        phase,
-        initialPreset || { name: "My semester week", windows },
+      return copyAvailabilityRows(
+        useAvailability(
+          phase,
+          initialPreset || { name: "My semester week", windows },
+        ),
       );
     }
-    return { ...phase, planningMode: "flexible" };
+    return copyAvailabilityRows({ ...phase, planningMode: "flexible" });
   });
   const [step, setStep] = useState(mode === "duplicate" ? 4 : -1);
   const [visited, setVisited] = useState(mode === "create" ? -1 : 4);
@@ -184,6 +190,8 @@ export default function PhasePlanner({
     const slot = draft.slots.find((item) => item.id === slotId);
     if (!slot || slot.protected || (slot.fixed && patch.fixed !== false))
       return;
+    if (patch.fixed && !slot.subjectId)
+      return setError("Choose a subject before locking this session.");
     if (
       patch.fixed &&
       (slot.end <= slot.start || (slot.end - slot.start) % 30 !== 0)
@@ -220,7 +228,7 @@ export default function PhasePlanner({
         day,
         start: available.start,
         end: Math.min(available.start + 120, available.end),
-        subjectId: d.subjects[0]?.id || "",
+        subjectId: "",
         fixed: false,
       });
     });
@@ -274,6 +282,7 @@ export default function PhasePlanner({
     if (step === -1) {
       const errors = presetErrors(draft.availability);
       if (errors.length) return setError(errors[0]);
+      setDraft((current) => copyAvailabilityRows(current));
     }
     if (step === 0 && !draft.subjects.length)
       return setError("Add at least one subject.");
@@ -288,18 +297,20 @@ export default function PhasePlanner({
         );
     }
     if (step === 4) {
-      const errors = flexibleErrors(draft);
+      const saved = assignedTimetable(draft);
+      const errors = flexibleErrors(saved);
       if (errors.length) return setError(errors[0]);
-      onSave({ ...draft, totalTarget: targetSum(draft) });
+      onSave({ ...saved, totalTarget: targetSum(saved) });
       return;
     }
     setStep((value) => value + 1);
     setVisited((value) => Math.max(value, step + 1));
     setError("");
   };
-  const actual = hoursBySubject(draft);
-  const issues = flexibleErrors({ ...draft, name: draft.name || "Draft" });
-  const warnings = planningWarnings(draft);
+  const assigned = assignedTimetable(draft);
+  const actual = hoursBySubject(assigned);
+  const issues = flexibleErrors({ ...assigned, name: draft.name || "Draft" });
+  const warnings = planningWarnings(assigned);
   const capacity = availableHours(draft.availability.windows);
   return (
     <div className="dialog-backdrop planner-backdrop">
@@ -338,6 +349,11 @@ export default function PhasePlanner({
               disabled={filling || index - 1 > visited}
               className={index - 1 === step ? "active" : ""}
               onClick={() => {
+                if (step === -1 && index > 0) {
+                  const errors = presetErrors(draft.availability);
+                  if (errors.length) return setError(errors[0]);
+                  setDraft((current) => copyAvailabilityRows(current));
+                }
                 setStep(index - 1);
                 setError("");
               }}
@@ -729,13 +745,15 @@ export default function PhasePlanner({
                 </button>
                 <button onClick={() => setStep(-1)}>Change availability</button>
                 <span>
-                  {formatHours(scheduledHours(draft))}h scheduled ·{" "}
+                  {formatHours(scheduledHours(assigned))}h scheduled ·{" "}
                   {formatHours(capacity)}h available
                 </span>
               </div>
               <p className="hint-block">
-                Build your own plan with Add time slot below. Nothing is filled
-                automatically. Fill timetable is optional: it replaces unlocked
+                Your available periods are copied below with no subject
+                selected. Choose a subject for each period, adjust or split its
+                times, or leave it free. Unassigned rows are not saved as study
+                sessions. Fill timetable is optional: it replaces unlocked
                 sessions with suggestions. Edit a course and its times, then
                 lock that session to keep it in place. Fill timetable searches
                 the remaining space in half-hour increments, prefers sessions of
@@ -770,7 +788,9 @@ export default function PhasePlanner({
                         {formatHours(
                           slots.reduce((total, s) => total + duration(s), 0),
                         )}
-                        h · {slots.length} blocks
+                        h in rows ·{" "}
+                        {slots.filter((slot) => !slot.subjectId).length} to
+                        assign
                       </small>
                     </div>
                     {slots.map((slot) => (
@@ -792,6 +812,9 @@ export default function PhasePlanner({
                               })
                             }
                           >
+                            <option value="">
+                              Choose subject / leave free
+                            </option>
                             {draft.subjects.map((s) => (
                               <option key={s.id} value={s.id}>
                                 {s.name}
@@ -911,7 +934,7 @@ export default function PhasePlanner({
                 </div>
                 <div>
                   <small>SCHEDULED</small>
-                  <strong>{formatHours(scheduledHours(draft))}h</strong>
+                  <strong>{formatHours(scheduledHours(assigned))}h</strong>
                 </div>
                 <div>
                   <small>SUBJECTS</small>
@@ -939,7 +962,7 @@ export default function PhasePlanner({
                   {DAYS.map((day, di) => (
                     <div key={day} className="review-day">
                       <strong>{day}</strong>
-                      {draft.slots
+                      {assigned.slots
                         .filter((s) => s.day === di)
                         .sort((a, b) => a.start - b.start)
                         .map((s) => (
@@ -949,7 +972,7 @@ export default function PhasePlanner({
                             {s.fixed ? " · Fixed" : ""}
                           </span>
                         ))}
-                      {!draft.slots.some((s) => s.day === di) && (
+                      {!assigned.slots.some((s) => s.day === di) && (
                         <span>Free day</span>
                       )}
                     </div>
