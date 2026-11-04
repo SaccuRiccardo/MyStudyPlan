@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+# Your personal study data, including snapshots, should not be committed.
+Current_State/*
+!Current_State/.gitkeep
+Backups/*
+!Backups/.gitkeep

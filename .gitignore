@@ -1,0 +1,13 @@
+# Local study data and all generated backups/exports, wherever the app is copied.
+**/Current_State/
+**/Backups/
+**/State_*/
+**/*__????-??-??_??-??-??_UTC*
+**/study-orbit.json
+**/exports/
+**/*.zip
+**/node_modules/
+**/dist/
+**/.env
+**/.env.*
+!**/.env.example
