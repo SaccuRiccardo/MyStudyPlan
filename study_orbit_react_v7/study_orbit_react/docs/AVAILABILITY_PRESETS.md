@@ -12,7 +12,8 @@
 4. Save it, then choose **Build semester phase**. Select your courses and priorities.
 5. **Suggest hours by priority** distributes available time using your chosen study effort, or
    enter each course's hours yourself. These hours are goals, not a required total.
-6. Continue to see a timetable that fits the available time. If 55 hours are wanted
+6. Continue to build your own timetable using **Add time slot**, or explicitly choose
+   **Fill timetable** for suggestions. Continue never generates or replaces sessions. If 55 hours are wanted
    but only 42 are available, the scheduler shares those 42 hours proportionally to
    your requested goals, preserving the 55-hour request for comparison. It does not
    silently invent evening sessions or force you to reduce the numbers.
@@ -149,3 +150,19 @@ keyboard toggling and room for long course names. Effort choices explain both th
 priority and intended workload. Existing plans keep their priorities without any
 migration or change to their saved hours. Existing schedules change only when you
 refill and save the phase.
+
+
+## Manual planning and stable rows
+
+Availability rows stay in their visible position while focus moves between the
+row's type, start, end and day-offset controls. Once you leave a valid row, the
+list sorts by start time. A newly added period begins at the last period's end,
+including after midnight; the two-day limit does not wrap back onto existing time.
+
+**Suggest hours by priority** and **Fill timetable** run only when clicked. Moving
+through the phase builder, editing goals, or changing availability never triggers
+a fill. Add your own sessions with **Add time slot**: defaults use the first free
+study window on that day, continuing directly from a preceding session when space
+allows. Change their subjects and times as needed. The preset remains an independent
+availability copy. Fill deliberately replaces unlocked sessions, so lock any manual
+choices you want to retain before requesting suggestions.

@@ -152,3 +152,12 @@ unmarking the block reverses that progress. Effort priorities and weekly-hour go
 stay visible. Completion follows the week selected in the daily schedule and counts
 scheduled hours, not measured study time or effort-weighted points. A fully completed
 partial timetable still shows any goal hours that have not been scheduled.
+
+
+## Manual or suggested planning
+
+Continue through the phase builder to enter your own weekly-hour goals and add
+sessions manually. Suggestions never run automatically: use **Suggest hours by
+priority** or **Fill timetable** when you want help. Fill replaces unlocked
+sessions; lock manual choices first if you want to keep them. Availability rows
+sort after you leave a completed row, and new periods start at the previous end.

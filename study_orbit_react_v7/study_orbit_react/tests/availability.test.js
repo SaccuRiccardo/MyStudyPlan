@@ -224,3 +224,23 @@ test("sub-half-hour availability stays free and fixed/university conflicts remai
     ),
   );
 });
+
+test("new availability rows continue from the previous end, including overnight and limits", async () => {
+  const { nextAvailabilityRange } = await import("../src/lib/availability.js");
+  assert.deepEqual(nextAvailabilityRange([], 0), { start: 540, end: 660 });
+  const rows = [
+    { day: 0, start: 540, end: 660 },
+    { day: 1, start: 500, end: 900 },
+    { day: 0, start: 660, end: 780 },
+  ];
+  assert.deepEqual(nextAvailabilityRange(rows, 0), { start: 780, end: 900 });
+  assert.deepEqual(nextAvailabilityRange([{ day: 0, end: 1500 }], 0, 60), {
+    start: 1500,
+    end: 1560,
+  });
+  assert.deepEqual(nextAvailabilityRange([{ day: 0, end: 2850 }], 0), {
+    start: 2850,
+    end: 2880,
+  });
+  assert.equal(nextAvailabilityRange([{ day: 0, end: 2880 }], 0), null);
+});

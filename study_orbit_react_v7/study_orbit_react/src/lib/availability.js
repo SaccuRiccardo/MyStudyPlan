@@ -152,3 +152,12 @@ export function starterWindows(kind) {
     })),
   ).flat();
 }
+
+/** Start the next row at the end of the last period without wrapping backwards. */
+export function nextAvailabilityRange(windows, day, minutes = 120) {
+  const rows = windows.filter((window) => window.day === day);
+  const start = rows.length
+    ? Math.max(...rows.map((window) => window.end))
+    : 540;
+  return start >= 2880 ? null : { start, end: Math.min(start + minutes, 2880) };
+}

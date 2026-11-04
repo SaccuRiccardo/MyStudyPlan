@@ -4,6 +4,7 @@ import {
   availableHours,
   starterWindows,
   presetErrors,
+  studyWindows,
 } from "../lib/availability.js";
 import {
   useAvailability,
@@ -76,7 +77,7 @@ function description(step) {
   return [
     "Add any course, project or regular study activity. Choose from your library or add a new subject. Renaming a subject updates its name everywhere.",
     "Choose how much attention each subject needs. Higher priorities receive more suggested weekly time; you can always adjust the hours.",
-    "Treat subject hours as goals, not a quota. The timetable will fit what it can and show any shortfall.",
+    "Enter your own weekly goals, or request suggested hours. Continuing does not generate or replace sessions.",
     "Adjust the start and end times freely. +1 day supports studying after midnight.",
     "Review your available time, subject goals and proposed sessions. A partial plan is fine; conflicts still need correcting.",
   ][step];
@@ -122,7 +123,6 @@ export default function PhasePlanner({
   });
   const [step, setStep] = useState(mode === "duplicate" ? 4 : -1);
   const [visited, setVisited] = useState(mode === "create" ? -1 : 4);
-  const [needsRefit, setNeedsRefit] = useState(!initialPhase);
   const [subjectText, setSubjectText] = useState("");
   const [presetNotice, setPresetNotice] = useState("");
   const [error, setError] = useState("");
@@ -134,7 +134,6 @@ export default function PhasePlanner({
       const next = clone(current);
       return fn(next) || next;
     });
-    if (step < 3) setNeedsRefit(true);
     setError("");
   };
   /** @brief Confirm before discarding unsaved planner configuration. */
@@ -206,22 +205,26 @@ export default function PhasePlanner({
     changeSlot(slot.id, { [field]: Number(offset) * 1440 + h * 60 + m });
   };
   /** @brief Append an editable block to the selected study day. */
-  const addSlot = (day) =>
+  const addSlot = (day) => {
+    const available = studyWindows(
+      draft.availability?.windows || [],
+      draft.slots,
+    ).find((window) => window.day === day && window.end - window.start >= 30);
+    if (!available)
+      return setError(
+        "No free study availability on that day. Add or extend availability first.",
+      );
     update((d) => {
-      const previous = d.slots
-        .filter((s) => s.day === day)
-        .sort((a, b) => a.end - b.end)
-        .at(-1);
-      const start = previous ? Math.min(previous.end + 30, 2760) : 540;
       d.slots.push({
         id: uid(),
         day,
-        start,
-        end: Math.min(start + 120, 2880),
+        start: available.start,
+        end: Math.min(available.start + 120, available.end),
         subjectId: d.subjects[0]?.id || "",
         fixed: false,
       });
     });
+  };
   const selectSubject = (subject) => {
     if (draft.subjects.some((item) => item.id === subject.id)) {
       removeSubject(subject);
@@ -255,7 +258,6 @@ export default function PhasePlanner({
       );
       const next = adaptToAvailability(draft);
       setDraft(next);
-      setNeedsRefit(false);
       setStep(3);
       setVisited((value) => Math.max(3, value));
       setFillNotice(
@@ -275,15 +277,6 @@ export default function PhasePlanner({
     }
     if (step === 0 && !draft.subjects.length)
       return setError("Add at least one subject.");
-    if (
-      step === 1 &&
-      !draft.subjects.some(
-        (subject) => Number(draft.targetHours[subject.id]) > 0,
-      )
-    ) {
-      setDraft((current) => suggestForAvailability(current));
-      setNeedsRefit(true);
-    }
     if (step === 2) {
       if (
         draft.subjects.some(
@@ -293,10 +286,6 @@ export default function PhasePlanner({
         return setError(
           "Use whole or half hours for each subject (12, 12.5, 13…).",
         );
-      if (needsRefit) {
-        void fill();
-        return;
-      }
     }
     if (step === 4) {
       const errors = flexibleErrors(draft);
@@ -379,7 +368,6 @@ export default function PhasePlanner({
                         setDraft((current) =>
                           useAvailability(current, selected),
                         );
-                        setNeedsRefit(true);
                         setPresetNotice("Preset copied into this phase.");
                       }
                     }}
@@ -671,7 +659,6 @@ export default function PhasePlanner({
                 <button
                   onClick={() => {
                     setDraft((current) => suggestForAvailability(current));
-                    setNeedsRefit(true);
                   }}
                 >
                   <Sparkles size={16} />
@@ -724,7 +711,7 @@ export default function PhasePlanner({
               </div>
               <p className="hint-block">
                 {targetSum(draft) > capacity
-                  ? "Your goals exceed available time. We will share the available hours proportionally and keep your original goals visible."
+                  ? "Your goals exceed available time. If you choose Fill timetable, it will share available hours proportionally and keep your original goals visible."
                   : "Spare time can stay free. You do not need to fill every window or match an exact weekly total."}
               </p>
             </>
@@ -747,12 +734,15 @@ export default function PhasePlanner({
                 </span>
               </div>
               <p className="hint-block">
-                Edit a course and its times, then lock that session to keep it
-                in place. Fill timetable searches the remaining space in
-                half-hour increments, prefers sessions of 2 hours or longer, and
-                never creates a new study stretch under 90 minutes. Short gaps
-                stay free. Each course stays in one continuous stretch per study
-                day. Unlock a session before changing it.
+                Build your own plan with Add time slot below. Nothing is filled
+                automatically. Fill timetable is optional: it replaces unlocked
+                sessions with suggestions. Edit a course and its times, then
+                lock that session to keep it in place. Fill timetable searches
+                the remaining space in half-hour increments, prefers sessions of
+                2 hours or longer, and never creates a new study stretch under
+                90 minutes. Short gaps stay free. Each course stays in one
+                continuous stretch per study day. Unlock a session before
+                changing it.
               </p>
               {fillNotice && (
                 <p className="form-success" role="status">
