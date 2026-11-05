@@ -27,3 +27,23 @@ export function calendarRange(segments) {
     end: Math.ceil(Math.max(...segments.map((s) => s.end)) / 60) * 60,
   };
 }
+
+/** Place the local clock on its civil day; clamp before/after the visible hours explicitly. */
+export function calendarNow(now, start, end) {
+  const minutes =
+    now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+  return {
+    day: (now.getDay() + 6) % 7,
+    percent: Math.max(
+      0,
+      Math.min(100, ((minutes - start) / (end - start)) * 100),
+    ),
+    time: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    outside:
+      minutes < start
+        ? "Before shown hours"
+        : minutes > end
+          ? "After shown hours"
+          : null,
+  };
+}

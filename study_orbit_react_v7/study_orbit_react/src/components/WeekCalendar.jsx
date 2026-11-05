@@ -1,3 +1,4 @@
+import CalendarNow from "./CalendarNow.jsx";
 import { memo } from "react";
 import { DAYS, formatHours } from "../lib/time.js";
 import { subjectOf, subjectName, scheduledHours } from "../lib/planner.js";
@@ -57,7 +58,11 @@ function WeekCalendar({ phase }) {
                   {day}
                 </div>
               ))}
-              <div className="calendar-time-axis" aria-hidden="true">
+              <div
+                className="calendar-time-axis"
+                aria-hidden="true"
+                style={{ gridColumn: 1, gridRow: 2 }}
+              >
                 {hours.map((time) => (
                   <span
                     key={time}
@@ -70,7 +75,12 @@ function WeekCalendar({ phase }) {
                 ))}
               </div>
               {DAYS.map((day, index) => (
-                <div className="calendar-day-column" key={day} aria-label={day}>
+                <div
+                  className="calendar-day-column"
+                  key={day}
+                  aria-label={day}
+                  style={{ gridColumn: index + 2, gridRow: 2 }}
+                >
                   {segments
                     .filter((s) => s.day === index)
                     .map((segment) => {
@@ -107,6 +117,7 @@ function WeekCalendar({ phase }) {
                   )}
                 </div>
               ))}
+              <CalendarNow start={start} end={end} />
             </div>
           </div>
           <div className="calendar-legend">

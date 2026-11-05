@@ -168,3 +168,11 @@ button:disabled { transform: none; }
 .allocation-goal { color: var(--muted); font-size: 11px; margin-top: 10px; line-height: 1.5; }
 .allocation-card .is-complete { border-color: var(--positive); }
 @media(prefers-reduced-motion:reduce) { .allocation-completion-track > div,.allocation-segment > div { transition: none; } }
+
+.calendar-now-layer { position: relative; height: var(--calendar-height); z-index: 3; pointer-events: none; min-width: 0; }
+.calendar-now-line { position: absolute; inset-inline: 0; border-top: 2px solid #c73845; }
+.calendar-now-line::before { content: ''; position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #c73845; top: -5px; left: -4px; }
+.calendar-now-line > span { position: absolute; right: 2px; bottom: 4px; padding: 3px 5px; border-radius: 4px; background: #c73845; color: #fff; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.calendar-now-line small { display: block; font-size: 9px; font-weight: 400; }
+.calendar-now-line.outside-hours { border-top-style: dashed; }
+.calendar-now-line.before-hours > span { top: 4px; bottom: auto; }
