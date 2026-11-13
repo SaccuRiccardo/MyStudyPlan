@@ -4,6 +4,18 @@ A personal study planner that runs in your browser and saves to ordinary JSON fi
 on your computer. Plan your availability, assign study priorities, build a timetable,
 and keep focus music playing while you work. No account or remote database is needed.
 
+## Who made this very serious piece of software?
+
+Everything here was done by **ChatGPT**. I’m just a student who didn’t want to pay
+crazy subscription plans for stupid applications that everyone could apparently
+vibe code. So, naturally, I asked ChatGPT to vibe code one more application.
+
+My contribution: “can you also add this?” Approximately 400 times.
+ChatGPT’s contribution: everything else.
+
+**Yes, this text is also vibe coded.** I outsourced the disclaimer about outsourcing.
+We believe in consistency around here.
+
 ## Start on your computer
 
 Download the **complete project** from GitHub (**Code → Download ZIP**) and extract
