@@ -141,9 +141,9 @@ test("preserving older history survives source slot, subject and phase removal",
 test("old states default sound settings off and imports retain all new state fields", () => {
   const old = normalizeState({ version: 6 });
   assert.deepEqual(old.journal, {});
-  assert.deepEqual(old.settings, { sessionStartSound: false, sessionEndSound: false });
+  assert.deepEqual(old.settings, { sessionStartSound: false, sessionEndSound: false, soundVolume: 0.8, customSound: null });
   const state = blank();
-  state.settings = { sessionStartSound: true, sessionEndSound: false };
+  state.settings = { sessionStartSound: true, sessionEndSound: false, soundVolume: 0.8, customSound: null };
   saveJournalEntry(state, context, { work: "Exercises", nextStep: "Proofs" }, firstSave);
   saveJournalEntry(state, context, { done: true }, laterSave);
   const restored = normalizeState(migrateExport(JSON.parse(JSON.stringify(state))));

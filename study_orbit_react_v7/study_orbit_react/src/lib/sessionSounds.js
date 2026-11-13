@@ -100,21 +100,37 @@ export async function unlockSessionAudio() {
   }
 }
 
-/** Play a gentle rising start chime or falling end chime without external media. */
-export async function playSessionSound(kind = "start") {
+/** Play a stronger repeated alert or the locally saved custom sound. */
+export async function playSessionSound(kind = "start", settings = {}) {
   try {
     if (!audioContext || audioContext.state !== "running")
       throw new Error("Audio is paused. Click Test sound in Settings to enable it.");
-    const notes = kind === "end" ? [659.25, 523.25] : [523.25, 659.25];
+    const volume = Math.max(0, Math.min(1, settings.soundVolume ?? 0.8));
+    if (settings.customSound) {
+      const response = await fetch(settings.customSound.data);
+      const buffer = await audioContext.decodeAudioData(await response.arrayBuffer());
+      const source = audioContext.createBufferSource();
+      const gain = audioContext.createGain();
+      source.buffer = buffer;
+      gain.gain.value = volume;
+      source.connect(gain);
+      gain.connect(audioContext.destination);
+      source.onended = () => { source.disconnect(); gain.disconnect(); };
+      source.start();
+      source.stop(audioContext.currentTime + Math.min(buffer.duration, 15));
+      updateStatus("ready", "Custom session sound played.");
+      return;
+    }
+    const notes = kind === "end" ? [880, 659.25, 880, 659.25] : [659.25, 880, 659.25, 880];
     const start = audioContext.currentTime + 0.01;
     notes.forEach((frequency, index) => {
       const oscillator = audioContext.createOscillator();
       const gain = audioContext.createGain();
-      const at = start + index * 0.2;
-      oscillator.type = "sine";
+      const at = start + index * 0.32;
+      oscillator.type = "triangle";
       oscillator.frequency.value = frequency;
       gain.gain.setValueAtTime(0, at);
-      gain.gain.linearRampToValueAtTime(0.1, at + 0.025);
+      gain.gain.linearRampToValueAtTime(0.55 * volume, at + 0.025);
       gain.gain.exponentialRampToValueAtTime(0.001, at + 0.32);
       oscillator.connect(gain);
       gain.connect(audioContext.destination);
@@ -126,4 +142,27 @@ export async function playSessionSound(kind = "start") {
   } catch (error) {
     throw playbackError(error);
   }
+}
+
+
+export const MAX_SOUND_BYTES = 1024 * 1024;
+export function soundSettingsError(settings) {
+  if (settings.soundVolume !== undefined && (!Number.isFinite(settings.soundVolume) || settings.soundVolume < 0 || settings.soundVolume > 1)) return "Invalid sound volume.";
+  if (settings.customSound != null && (typeof settings.customSound !== "object" || typeof settings.customSound.name !== "string" || settings.customSound.name.length > 255 || typeof settings.customSound.data !== "string" || !/^data:audio\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/]+={0,2}$/.test(settings.customSound.data) || settings.customSound.data.length > Math.ceil(MAX_SOUND_BYTES / 3) * 4 + 100)) return "Invalid custom sound (maximum 1 MB).";
+  return null;
+}
+
+export async function readSoundFile(file) {
+  if (!file || !file.type.startsWith("audio/")) throw new Error("Choose an audio file such as MP3, WAV or OGG.");
+  if (!file.size || file.size > MAX_SOUND_BYTES) throw new Error("Choose an audio file up to 1 MB.");
+  await unlockSessionAudio();
+  const bytes = await file.arrayBuffer();
+  await audioContext.decodeAudioData(bytes.slice(0));
+  const data = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Could not read this sound."));
+    reader.readAsDataURL(file);
+  });
+  return { name: file.name.slice(0, 255), data };
 }

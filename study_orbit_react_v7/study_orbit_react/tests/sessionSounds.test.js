@@ -88,10 +88,26 @@ test("audio unlock reports failures and test sounds use distinct rising/falling 
     await unlockSessionAudio();
     await playSessionSound("start");
     await playSessionSound("end");
-    assert.deepEqual(frequencies, [523.25, 659.25, 659.25, 523.25]);
+    assert.deepEqual(frequencies, [659.25, 880, 659.25, 880, 880, 659.25, 880, 659.25]);
     assert.equal(getSessionAudioStatus().state, "ready");
   } finally {
     if (previousWindow === undefined) delete globalThis.window;
     else globalThis.window = previousWindow;
   }
+});
+
+
+test("custom audio and volume survive normalization and reject invalid uploads", async () => {
+  const { soundSettingsError, readSoundFile } = await import("../src/lib/sessionSounds.js");
+  const { normalizeState } = await import("../src/lib/planner.js");
+  const { migrateExport } = await import("../src/lib/legacy.js");
+  const customSound = { name: "My alert.wav", data: "data:audio/wav;base64,UklGRg==" };
+  const state = normalizeState({ settings: { soundVolume: 0.65, customSound } });
+  assert.deepEqual(normalizeState(migrateExport(JSON.parse(JSON.stringify(state)))).settings.customSound, customSound);
+  assert.equal(state.settings.soundVolume, 0.65);
+  assert.equal(soundSettingsError(state.settings), null);
+  assert.ok(soundSettingsError({ soundVolume: 2 }));
+  assert.ok(soundSettingsError({ customSound: { name: "bad", data: "https://example.com" } }));
+  await assert.rejects(readSoundFile({ type: "text/plain", size: 100 }), /audio file/);
+  await assert.rejects(readSoundFile({ type: "audio/wav", size: 2 * 1024 * 1024 }), /1 MB/);
 });

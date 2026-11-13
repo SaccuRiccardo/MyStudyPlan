@@ -27,8 +27,8 @@ export function useSessionSounds({ phase, now, settings = {} }) {
 
   useEffect(() => {
     const events = tracker.current.tick(phase, now, settings);
-    for (const event of events) playSessionSound(event.kind).catch(() => {});
-  }, [phase, now, settings.sessionStartSound, settings.sessionEndSound]);
+    for (const event of events) playSessionSound(event.kind, settings).catch(() => {});
+  }, [phase, now, settings]);
 
   return { soundError: enabled && audio.state === "blocked" ? audio.message : "" };
 }

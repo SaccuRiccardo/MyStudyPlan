@@ -1,3 +1,4 @@
+import { soundSettingsError } from "../src/lib/sessionSounds.js";
 import { backupName, validBackupName } from "../src/lib/backupNames.js";
 import { presetErrors } from "../src/lib/availability.js";
 import { journalValidationError } from "../src/lib/studyJournal.js";
@@ -66,6 +67,10 @@ export function validateState(candidate) {
   if (candidate.journal !== undefined) {
     const error = journalValidationError(candidate.journal);
     if (error) invalid(error);
+  }
+  if (candidate.settings && typeof candidate.settings === "object") {
+    const soundError = soundSettingsError(candidate.settings);
+    if (soundError) invalid(soundError);
   }
   if (candidate.settings !== undefined) {
     if (!candidate.settings || typeof candidate.settings !== "object" || Array.isArray(candidate.settings) ||

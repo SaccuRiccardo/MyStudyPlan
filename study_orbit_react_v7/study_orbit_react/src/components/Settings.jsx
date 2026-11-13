@@ -5,6 +5,7 @@ import {
   playSessionSound,
   subscribeSessionAudioStatus,
   unlockSessionAudio,
+  readSoundFile,
 } from "../lib/sessionSounds.js";
 
 /** Persist independent session alerts and let the user unlock/test browser audio. */
@@ -23,7 +24,7 @@ export default function Settings({ settings, onChange }) {
     setFeedback("");
     try {
       await unlockSessionAudio();
-      await playSessionSound(kind);
+      await playSessionSound(kind, settings);
       setFeedback(`${kind === "start" ? "Start" : "End"} sound played. Check your device volume if you could not hear it.`);
     } catch (error) {
       setFeedback(error.message);
@@ -39,7 +40,7 @@ export default function Settings({ settings, onChange }) {
           <h2 id="settingsTitle"><BellRing size={19} /> Session sounds</h2>
         </div>
       </div>
-      <p className="card-desc">Hear a gentle chime when a session starts or ends, even while you use another tab.</p>
+      <p className="card-desc">Hear a clear alert when a session starts or ends, even while you use another tab.</p>
       <div className="sound-settings">
         <label className="sound-setting">
           <input type="checkbox" checked={!!settings.sessionStartSound}
@@ -51,6 +52,22 @@ export default function Settings({ settings, onChange }) {
             onChange={(event) => toggle("sessionEndSound", event.target.checked)} />
           <span><strong>Sound at the end</strong><small>Play a falling chime when study time ends and the planning handoff begins.</small></span>
         </label>
+      </div>
+      <div className="sound-settings">
+        <label className="sound-setting"><span><strong>Alert volume: {Math.round((settings.soundVolume ?? 0.8) * 100)}%</strong>
+          <input aria-label="Alert volume" type="range" min="0" max="1" step="0.05" value={settings.soundVolume ?? 0.8} onChange={(e) => onChange({ ...settings, soundVolume: Number(e.target.value) })} />
+        </span></label>
+        <label className="sound-setting"><span><strong>Upload your own sound</strong><small>Audio files up to 1 MB. Plays up to 15 seconds at both enabled boundaries. Saved locally and included in backups.</small>
+          <input aria-label="Upload session sound" type="file" accept="audio/*" disabled={!!testing} onChange={async (e) => {
+            const file = e.target.files?.[0]; e.target.value = "";
+            if (!file) return;
+            setTesting("upload");
+            try { const customSound = await readSoundFile(file); onChange({ ...settings, customSound }); setFeedback("Sound saved. Use a test button to preview it."); }
+            catch (error) { setFeedback(error.message || "This audio format could not be decoded."); }
+            finally { setTesting(""); }
+          }} />
+        </span></label>
+        {settings.customSound && <div><p>Selected: {settings.customSound.name}</p><button className="secondary-button" onClick={() => onChange({ ...settings, customSound: null })}>Use default alert</button></div>}
       </div>
       <div className="button-row settings-tests">
         <button className="secondary-button" disabled={!!testing} onClick={() => test("start")}>

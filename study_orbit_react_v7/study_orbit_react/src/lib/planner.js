@@ -467,6 +467,8 @@ export function normalizeState(input) {
   data.settings = {
     sessionStartSound: data.settings?.sessionStartSound === true,
     sessionEndSound: data.settings?.sessionEndSound === true,
+    soundVolume: Number.isFinite(data.settings?.soundVolume) ? Math.max(0, Math.min(1, data.settings.soundVolume)) : 0.8,
+    customSound: data.settings?.customSound || null,
   };
   return data;
 }

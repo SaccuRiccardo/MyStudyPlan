@@ -244,3 +244,5 @@ period boundaries. Choose a subject for each row, shorten a row and add another
 session in the freed time, or leave it unassigned to keep that period free.
 Only assigned sessions are saved and counted in progress. Reopening a phase keeps
 your subject choices and exposes the remaining availability for manual planning.
+
+Session alerts now use a stronger repeated tone. In **Settings**, adjust **Alert volume** or **Upload your own sound** (up to 1 MB). Test either alert to preview it, or choose **Use default alert** to reset. Custom audio plays for up to 15 seconds and stays in your local state and backups.

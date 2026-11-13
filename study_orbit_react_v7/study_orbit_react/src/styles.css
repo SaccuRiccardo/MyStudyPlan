@@ -251,3 +251,7 @@ button:disabled { transform: none; }
   .diary-entry-heading h3 { font-size: 14px; }
   .diary-filters label { flex-basis: 100%; }
 }
+
+.sound-setting:has(input[type="range"]),.sound-setting:has(input[type="file"]) { min-width: 0; }
+.sound-setting:has(input[type="range"]) > span,.sound-setting:has(input[type="file"]) > span { width: 100%; min-width: 0; }
+.sound-setting input[type="range"],.sound-setting input[type="file"] { display: block; width: 100%; height: auto; margin-top: 12px; max-width: 100%; }

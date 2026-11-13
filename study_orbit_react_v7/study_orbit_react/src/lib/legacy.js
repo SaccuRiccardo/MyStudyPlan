@@ -1,3 +1,4 @@
+import { soundSettingsError } from "./sessionSounds.js";
 import { presetErrors } from "./availability.js";
 import { journalValidationError } from "./studyJournal.js";
 
@@ -12,6 +13,7 @@ export function migrateExport(raw) {
       const error = journalValidationError(raw.journal);
       if (error) throw new Error(`${error} The current state has not been replaced.`);
     }
+    if (raw.settings && typeof raw.settings === "object" && soundSettingsError(raw.settings)) throw new Error(soundSettingsError(raw.settings));
     if (raw.settings !== undefined &&
         (!raw.settings || typeof raw.settings !== "object" || Array.isArray(raw.settings) ||
           ["sessionStartSound", "sessionEndSound"].some((key) =>
