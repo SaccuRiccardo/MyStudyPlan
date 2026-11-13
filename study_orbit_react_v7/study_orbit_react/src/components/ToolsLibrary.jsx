@@ -1,7 +1,8 @@
+import FilePicker from "./FilePicker.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Search, ExternalLink, Pencil, Trash2, ArrowLeft, ArrowRight, X, Globe, Link, LoaderCircle, Library } from "lucide-react";
 import { uid } from "../lib/planner.js";
-import { toolUrl, reorderTool } from "../lib/tools.js";
+import { toolUrl, reorderTool, validToolImage } from "../lib/tools.js";
 import { api } from "../lib/api.js";
 import { useDialog } from "../hooks/useDialog.js";
 
@@ -14,23 +15,33 @@ function Preview({ tool }) {
 function ToolEditor({ initial, categories, onSave, onClose }) {
   const [draft,setDraft]=useState(initial || {url:'',title:'',category:'',image:'',icon:''});
   const [fetching,setFetching]=useState(false),[notice,setNotice]=useState(''),[error,setError]=useState('');
-  const titleEdited=useRef(false), generation=useRef(0),dialog=useRef(null);
+  const imageEdited=useRef(false);
+  const [uploading,setUploading]=useState(false);
+  const [lookupVersion,setLookupVersion]=useState(0);
+  const titleEdited=useRef(Boolean(initial?.title)), generation=useRef(0),dialog=useRef(null);
   useDialog(dialog,onClose);
   useEffect(()=>{
     const request=++generation.current;
     setFetching(false);setNotice('');
-    if(!draft.url.trim() || draft.url===initial?.url)return;
+    if(!draft.url.trim() || (draft.url===initial?.url && lookupVersion===0))return;
     let url;try{url=toolUrl(draft.url);}catch{return;}
     const timer=setTimeout(async()=>{
       setFetching(true);
-      try{const metadata=await api.toolMetadata(url);if(request!==generation.current)return;setDraft(current=>({...current,title:titleEdited.current ? current.title : metadata.title,image:metadata.image || '',icon:metadata.icon || ''}));setNotice('Preview found. Make it yours before saving.');}
+      try{const metadata=await api.toolMetadata(url);if(request!==generation.current)return;setDraft(current=>({...current,title:titleEdited.current ? current.title : metadata.title,image:imageEdited.current ? current.image : metadata.image || '',icon:metadata.icon || ''}));setNotice(metadata.image ? 'Website details found. You can replace the cover below.' : 'No cover image was supplied by this site. Paste an image URL or upload your own below.');}
       catch(failure){if(request===generation.current)setNotice(`${failure.message} You can enter a name and save without a preview.`);}
       finally{if(request===generation.current)setFetching(false);}
     },500);
     return()=>{clearTimeout(timer);generation.current++;};
-  },[draft.url,initial?.url]);
-  const submit=e=>{e.preventDefault();try{const url=toolUrl(draft.url);if(!draft.title.trim())throw new Error('Enter a tool name.');onSave({...draft,id:initial?.id || uid(),url,title:draft.title.trim(),category:draft.category.trim()});onClose();}catch(failure){setError(failure.message);}};
-  return <div className="dialog-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section ref={dialog} className="dialog tool-editor" role="dialog" aria-modal="true" aria-labelledby="toolEditorTitle"><div className="dialog-top"><span className="dialog-caption"><Link size={16}/> YOUR WORK TOOLKIT</span><button className="close-button" aria-label="Close tool editor" onClick={onClose}><X size={18}/></button></div><h2 id="toolEditorTitle">{initial ? 'Edit tool' : 'Add a tool'}</h2><p className="card-desc">Paste a link. We’ll look for its title and cover image.</p><form onSubmit={submit}><label>Website URL<input autoFocus type="text" required maxLength={4096} placeholder="https://example.com" value={draft.url} onChange={e=>{titleEdited.current=false;setDraft({...draft,url:e.target.value,image:'',icon:''});setError('')}}/></label><p className="tool-preview-status" role="status">{fetching ? <><LoaderCircle size={14}/> Looking up the website…</> : notice || 'A preview is optional. Your link works without one.'}</p><label>Tool name<input required maxLength={150} value={draft.title} placeholder="Give this tool a name" onChange={e=>{titleEdited.current=true;setDraft({...draft,title:e.target.value})}}/></label><label>Category <span>(optional)</span><input list="toolCategories" maxLength={50} value={draft.category} placeholder="Design, Dev, Admin…" onChange={e=>setDraft({...draft,category:e.target.value})}/></label><datalist id="toolCategories">{categories.map(c=><option value={c} key={c}/>)}</datalist>{draft.image && <div className="tool-editor-cover"><Preview tool={{...draft,url:toolUrl(draft.url)}}/><button type="button" className="text-button" onClick={()=>setDraft({...draft,image:''})}>Remove cover image</button></div>}{error && <p role="alert" className="form-error">{error}</p>}<div className="dialog-bottom"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" type="submit">{initial ? 'Save changes' : 'Add tool'}</button></div></form></section></div>;
+  },[draft.url,initial?.url,lookupVersion]);
+  const submit=e=>{e.preventDefault();try{const url=toolUrl(draft.url);if(!draft.title.trim())throw new Error('Enter a tool name.');const image=draft.image && !draft.image.startsWith('data:') ? toolUrl(draft.image) : draft.image; if(!validToolImage(image))throw new Error('Choose a valid image URL or a smaller image.');onSave({...draft,id:initial?.id || uid(),url,image,title:draft.title.trim(),category:draft.category.trim()});onClose();}catch(failure){setError(failure.message);}};
+  return <div className="dialog-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section ref={dialog} className="dialog tool-editor" role="dialog" aria-modal="true" aria-labelledby="toolEditorTitle"><div className="dialog-top"><span className="dialog-caption"><Link size={16}/> YOUR WORK TOOLKIT</span><button className="close-button" aria-label="Close tool editor" onClick={onClose}><X size={18}/></button></div><h2 id="toolEditorTitle">{initial ? 'Edit tool' : 'Add a tool'}</h2><p className="card-desc">Paste a link. We’ll look for its title and cover image.</p><form onSubmit={submit}><label>Website URL<input autoFocus type="text" required maxLength={4096} placeholder="https://example.com" value={draft.url} onChange={e=>{titleEdited.current=false;imageEdited.current=false;setDraft({...draft,url:e.target.value,image:'',icon:''});setError('')}}/></label><p className="tool-preview-status" role="status">{fetching ? <><LoaderCircle size={14}/> Looking up the website…</> : notice || (initial ? 'Saved website details. You can add or replace its preview below.' : 'Paste a URL to look up website details, or add your own preview below.')}</p><button type="button" className="text-button" disabled={fetching || !draft.url.trim()} onClick={()=>setLookupVersion(v=>v+1)}>Retry website lookup</button><label>Tool name<input required maxLength={150} value={draft.title} placeholder="Give this tool a name" onChange={e=>{titleEdited.current=true;setDraft({...draft,title:e.target.value})}}/></label><label>Category <span>(optional)</span><input list="toolCategories" maxLength={50} value={draft.category} placeholder="Design, Dev, Admin…" onChange={e=>setDraft({...draft,category:e.target.value})}/></label><datalist id="toolCategories">{categories.map(c=><option value={c} key={c}/>)}</datalist><label>Preview image URL<input aria-label="Preview image URL" value={draft.image?.startsWith('data:') ? '' : draft.image || ''} placeholder="https://example.com/cover.png" onChange={e=>{imageEdited.current=true;setDraft({...draft,image:e.target.value})}}/></label><FilePicker label="Upload preview image" disabled={uploading} accept="image/png,image/jpeg,image/webp" hint="PNG, JPG or WebP up to 1 MB. Saved locally as a small cover." onChange={async e=>{
+ const file=e.target.files?.[0];e.target.value='';if(!file)return;
+ imageEdited.current=true;setUploading(true);
+ try{
+  if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>1024*1024)throw new Error('Choose a PNG, JPG or WebP image up to 1 MB.');
+  const bitmap=await createImageBitmap(file);const scale=Math.min(1,800/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();const image=canvas.toDataURL('image/webp',0.8);if(!validToolImage(image))throw new Error('This image is too large. Try a simpler or smaller cover.');setDraft(current=>({...current,image}));setError('');setNotice('Your uploaded preview will be saved with this tool.');
+ }catch(failure){setError(failure.message || 'Could not read this image.');}finally{setUploading(false);}
+}}/>{draft.image && <div className="tool-editor-cover"><Preview tool={{...draft,url:'https://example.invalid/'}}/><button type="button" className="text-button" onClick={()=>{imageEdited.current=true;setDraft({...draft,image:''})}}>Remove cover image</button></div>}{error && <p role="alert" className="form-error">{error}</p>}<div className="dialog-bottom"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" type="submit" disabled={uploading}>{initial ? 'Save changes' : 'Add tool'}</button></div></form></section></div>;
 }
 export default function ToolsLibrary({tools,onChange}) {
   const [search,setSearch]=useState(''),[category,setCategory]=useState('All'),[editor,setEditor]=useState(null);

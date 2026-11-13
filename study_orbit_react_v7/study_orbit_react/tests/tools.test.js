@@ -25,3 +25,10 @@ test('preview requests reject local services and non-web schemes',async()=>{
  assert.equal(publicAddress('93.184.216.34'),true);
  await assert.rejects(fetchToolMetadata('http://127.0.0.1/'),/public website/);await assert.rejects(fetchToolMetadata('file:///etc/passwd'),/HTTP/);
 });
+test('manual raster covers remain portable while unsafe or oversized data is rejected',async()=>{
+ const {validToolImage}=await import('../src/lib/tools.js');
+ const image='data:image/webp;base64,UklGRg==';
+ assert.equal(validToolImage(image),true);
+ for(const bad of ['data:image/svg+xml;base64,PHN2Zz4=','data:text/html;base64,YQ==','data:image/png;base64,'+'A'.repeat(350000),'javascript:alert(1)'])assert.equal(validToolImage(bad),false);
+ const state=normalizeState({tools:[{...tools[0],image}]});assert.equal(normalizeState(migrateExport(JSON.parse(JSON.stringify(state)))).tools[0].image,image);assert.equal(validateState(state),state);
+});

@@ -308,3 +308,10 @@ The optional version-7 `tools` array keeps the ordered records in local state,
 JSON import/export and backups. Existing workspaces start with an empty library.
 Metadata requests have time/size limits and validate public destinations through
 redirects; local service URLs can be saved manually without fetching a preview.
+
+Tool covers can also be set manually: **Edit tool → Preview image URL**, or
+**Upload preview image** for a PNG, JPG or WebP up to 1 MB. Uploaded covers are
+resized and saved locally with the tool, including in backups. **Retry website
+lookup** refreshes metadata while preserving a manually chosen cover. Some sites,
+including sign-in-based apps, do not supply a usable public preview; the lookup
+uses a separate request and cannot access your signed-in browser session.

@@ -252,3 +252,8 @@ site icon. Click a card to open it in a new tab; use search, category filters,
 and the arrow/edit/delete controls to arrange your shelf. Saved tools and their
 order are included in local state, backups, and JSON exports. Preview fetching
 requires internet access; saved links remain available offline.
+
+For sites without an automatic preview, edit the tool and paste a **Preview image
+URL** or **Upload preview image** (PNG/JPG/WebP, up to 1 MB). Uploaded covers are
+saved locally. **Retry website lookup** checks the site again without replacing
+your manually chosen cover.
