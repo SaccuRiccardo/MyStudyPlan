@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useRef } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -22,10 +22,11 @@ import {
 import { subjectOf, subjectName } from "../lib/planner.js";
 
 /** @brief Edit goals and completion for one dated occurrence of a study block. */
-function Session({ phase, date, slot, status, progress, onProgress, onEdit }) {
+function Session({ phase, date, slot, status, progress, onProgress, onEdit, onOpenSession }) {
   const subject = subjectOf(phase, slot.subjectId);
   const key = blockKey(phase.id, date, slot.id);
   const info = progress[key] || {};
+  const goalAtFocus = useRef(info.goal || "");
   const active =
     status.mode === "study" &&
     status.event?.slot.id === slot.id &&
@@ -44,7 +45,11 @@ function Session({ phase, date, slot, status, progress, onProgress, onEdit }) {
       />
       <div className="session-body">
         <div className="session-top">
-          <strong>{slot.title || subjectName(phase, slot.subjectId)}</strong>
+          <button className="session-subject" onClick={() => onOpenSession(slot.subjectId, {
+            phaseId: phase.id, date: dateKey(date), slotId: slot.id,
+          })} aria-label={`Open study log for ${subject?.name || "session"}`}>
+            {slot.title || subjectName(phase, slot.subjectId)}
+          </button>
           {slot.fixed && (
             <span className="fixed-label">
               <Pin size={10} /> LOCKED
@@ -57,11 +62,16 @@ function Session({ phase, date, slot, status, progress, onProgress, onEdit }) {
           aria-label={`Goal for ${subject?.name || "subject"}`}
           value={info.goal || ""}
           maxLength={180}
-          onChange={(e) => onProgress(key, { goal: e.target.value })}
+          onFocus={() => { goalAtFocus.current = info.goal || ""; }}
+          onChange={(e) => onProgress(key, { goal: e.target.value }, false)}
+          onBlur={(e) => { if (e.target.value !== goalAtFocus.current) onProgress(key, { goal: e.target.value }); }}
         />
-        <button className="session-next" onClick={() => onEdit(slot.subjectId)}>
-          <PencilLine size={12} /> Plan next time
+        <button className="session-next" onClick={() => onOpenSession(slot.subjectId, {
+          phaseId: phase.id, date: dateKey(date), slotId: slot.id,
+        })}>
+          <PencilLine size={12} /> Study log & next steps
         </button>
+        {info.work && <p className="session-work-preview">{info.work}</p>}
       </div>
       <button
         className={`check-button ${info.done ? "is-done" : ""}`}
@@ -86,6 +96,7 @@ function WeeklySchedule({
   progress,
   onProgress,
   onEdit,
+  onOpenSession,
   optionalNote,
   onOptionalNote,
 }) {
@@ -158,6 +169,7 @@ function WeeklySchedule({
               progress={progress}
               onProgress={onProgress}
               onEdit={onEdit}
+              onOpenSession={onOpenSession}
             />
           ))
         ) : (

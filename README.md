@@ -113,6 +113,19 @@ overnight continuations make the whole week visible. On a narrow screen, scroll
 inside the calendar horizontally. The Focus Shelf and floating player remain
 available as you navigate and edit.
 
+Click a calendar session or a subject's **Study diary** to record what you studied,
+its completion status, and your next steps. **Save study log** keeps each saved
+version, so earlier notes stay available under **Saved history**. Filter the diary
+by any date range and phase for weekly recall or a semester review. You can also
+add an independent diary entry for study outside the timetable.
+
+Next steps can be changed at any time, including after the ten-minute handoff;
+the latest edited next step appears in the subject's next session. The calendar
+always displays **00:00–24:00** and lets you browse earlier and later weeks.
+**Settings** provides separate beginning/end sound switches and test buttons.
+Keep the app open and your device awake for sounds; browser audio restrictions
+may require clicking a test button after reopening it.
+
 ## Troubleshooting
 
 - **Port in use:** stop your other Study Orbit launcher with Ctrl+C and retry.

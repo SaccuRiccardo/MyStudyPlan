@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import { SUBJECT_COLORS, TIERS, priorityLabel, uid } from "../lib/planner.js";
 
 /** @brief Edit the shared library even when no phase exists yet. */
-function SubjectManager({ subjects, onSave, onDelete }) {
+function SubjectManager({ subjects, onSave, onDelete, onOpenDiary }) {
   const [editing, setEditing] = useState(null);
   const [name, setName] = useState("");
   const [tier, setTier] = useState("A");
@@ -81,8 +81,9 @@ function SubjectManager({ subjects, onSave, onDelete }) {
       {error && <p role="alert">{error}</p>}
       {subjects.map((subject) => (
         <div className="subject-editor" key={subject.id}>
-          <strong>{subject.name}</strong>
+          <strong><button className="subject-diary-link" onClick={() => onOpenDiary(subject.id)}>{subject.name}</button></strong>
           <small>Default priority {priorityLabel(subject.tier)}</small>
+          <button className="secondary-button" onClick={() => onOpenDiary(subject.id)}>Study diary</button>
           <button
             className="secondary-button"
             aria-label={`Edit subject ${subject.name}`}
@@ -105,7 +106,7 @@ function SubjectManager({ subjects, onSave, onDelete }) {
             <div className="inline-confirm" role="alert">
               <span>
                 Remove this course from all phases, including fixed sessions and
-                its next-step note?
+                its next-step note? Saved study diary entries will remain in the diary.
               </span>
               <button
                 className="secondary-button danger-button"

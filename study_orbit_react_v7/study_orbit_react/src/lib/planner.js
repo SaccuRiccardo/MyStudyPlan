@@ -1,4 +1,5 @@
 import { DAYS, WEEK_MINUTES, duration, formatHours } from "./time.js";
+import { normalizeJournal } from "./studyJournal.js";
 
 export const SUBJECT_COLORS = [
   "#6559c3",
@@ -462,5 +463,10 @@ export function normalizeState(input) {
           typeof item.url === "string",
       )
     : [];
+  data.journal = normalizeJournal(data.journal);
+  data.settings = {
+    sessionStartSound: data.settings?.sessionStartSound === true,
+    sessionEndSound: data.settings?.sessionEndSound === true,
+  };
   return data;
 }

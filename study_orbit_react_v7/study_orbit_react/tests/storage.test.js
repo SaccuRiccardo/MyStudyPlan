@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile, rm, rename } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { normalizeState } from "../src/lib/planner.js";
+import { saveJournalEntry } from "../src/lib/studyJournal.js";
 
 // Isolate tests from Current_State/ in the packaged application.
 const root = await mkdtemp(path.join(os.tmpdir(), "study-orbit-test-"));
@@ -115,6 +117,42 @@ test("phase names and local times are used; old backups remain restorable", asyn
       isolated.createBackup("Invalid/Timezone"),
       /Invalid backup timezone/,
     );
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});
+
+test("diary revisions and sound settings survive saves and complete backup restoration", async () => {
+  const folder = await mkdtemp(path.join(os.tmpdir(), "study-orbit-diary-"));
+  process.env.STUDY_ORBIT_DATA_ROOT = folder;
+  const isolated = await import("../server/storage.js?diary-roundtrip");
+  try {
+    const plan = normalizeState(state("light"));
+    plan.settings = { sessionStartSound: true, sessionEndSound: false };
+    const context = {
+      subjectId: "math", subjectName: "Mathematics", phaseId: null,
+      phaseName: "", date: "2026-11-02", slotId: null, start: null, end: null,
+    };
+    const first = saveJournalEntry(plan, context, { work: "Theorem notes" }, "2026-11-02T14:00:00Z");
+    saveJournalEntry(plan, { ...context, id: first.id }, { nextStep: "Recall the proof" }, "2026-11-03T14:00:00Z");
+    await isolated.putState(plan);
+    assert.deepEqual(await isolated.getState(), plan);
+    const { name } = await isolated.createBackup();
+    await isolated.putState(state("dark"));
+    assert.deepEqual(await isolated.restoreBackup(name), plan);
+    assert.deepEqual(await isolated.getState(), plan);
+    for (const patch of [
+      { journal: [] },
+      { journal: { broken: { id: "broken" } } },
+      { settings: [] },
+      { settings: { sessionStartSound: "true" } },
+    ]) {
+      await assert.rejects(isolated.putState({ ...plan, ...patch }), /journal|sound settings/);
+      assert.deepEqual(await isolated.getState(), plan, "Invalid new fields must not overwrite local data");
+    }
+    // Older files are still accepted as-is; the frontend supplies new defaults.
+    await isolated.putState(state("dark"));
+    assert.equal((await isolated.getState()).theme, "dark");
   } finally {
     await rm(folder, { recursive: true, force: true });
   }

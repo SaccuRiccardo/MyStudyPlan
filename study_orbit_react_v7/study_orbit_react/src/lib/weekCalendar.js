@@ -1,3 +1,5 @@
+import { dateKey, mondayFor, shiftDate } from "./time.js";
+
 /** Split recurring study-day slots into civil calendar days, including Sunday wrap. */
 export function calendarSegments(slots) {
   return slots
@@ -9,6 +11,7 @@ export function calendarSegments(slots) {
         segments.push({
           slot,
           day: (slot.day + offset) % 7,
+          dayOffset: offset,
           start: cursor % 1440,
           end: end - offset * 1440,
           continued: cursor !== slot.start,
@@ -20,12 +23,16 @@ export function calendarSegments(slots) {
     .sort((a, b) => a.day - b.day || a.start - b.start);
 }
 
-export function calendarRange(segments) {
-  if (!segments.length) return { start: 540, end: 1080 };
-  return {
-    start: Math.floor(Math.min(...segments.map((s) => s.start)) / 60) * 60,
-    end: Math.ceil(Math.max(...segments.map((s) => s.end)) / 60) * 60,
-  };
+/** Keep every civil hour visible, even when the timetable is empty. */
+export function calendarRange() {
+  return { start: 0, end: 1440 };
+}
+
+/** Resolve a visible segment to its originating study date, including last Sunday's continuation. */
+export function calendarStudyDate(segment, weekDate) {
+  return dateKey(
+    shiftDate(mondayFor(weekDate), segment.day - segment.dayOffset),
+  );
 }
 
 /** Place the local clock on its civil day; clamp before/after the visible hours explicitly. */

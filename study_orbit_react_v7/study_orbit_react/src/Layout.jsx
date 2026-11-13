@@ -50,6 +50,8 @@ export default function Layout({
             >
               {saving === "saving"
                 ? "● Saving…"
+                : saving === "draft"
+                  ? "● Study log has unsaved changes"
                 : saving === "error"
                   ? "● Save failed"
                   : "✓ Saved locally"}

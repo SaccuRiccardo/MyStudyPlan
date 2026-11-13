@@ -1,4 +1,5 @@
 import { presetErrors } from "./availability.js";
+import { journalValidationError } from "./studyJournal.js";
 
 /** @brief Recognize supported exports before replacing the current workspace. */
 export function migrateExport(raw) {
@@ -7,6 +8,15 @@ export function migrateExport(raw) {
   if (Array.isArray(raw.phases)) {
     if (raw.version != null && ![6, 7].includes(raw.version))
       throw new Error("Unsupported Study Orbit version.");
+    if (raw.journal !== undefined) {
+      const error = journalValidationError(raw.journal);
+      if (error) throw new Error(`${error} The current state has not been replaced.`);
+    }
+    if (raw.settings !== undefined &&
+        (!raw.settings || typeof raw.settings !== "object" || Array.isArray(raw.settings) ||
+          ["sessionStartSound", "sessionEndSound"].some((key) =>
+            raw.settings[key] !== undefined && typeof raw.settings[key] !== "boolean")))
+      throw new Error("Invalid session sound settings; the current state has not been replaced.");
     if (
       raw.phases.some(
         (p) =>

@@ -9,6 +9,8 @@ export default function NextStepModal({
   subjectName,
   text,
   onChange,
+  onCommit,
+  onDiary,
   onClose,
   now,
 }) {
@@ -53,8 +55,8 @@ export default function NextStepModal({
           <div>
             <h2 id="handoffTitle">Next time: {subjectName}</h2>
             <p>
-              Leave yourself one clear, actionable instruction for the next
-              session.
+              Leave a next step, or open the study log to record what you did.
+              You can return from the calendar at any time.
             </p>
           </div>
           {auto && (
@@ -72,6 +74,7 @@ export default function NextStepModal({
           ref={inputRef}
           value={text}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onCommit}
           placeholder="For example: Continue with TLS remote attestation §4; check the reference values and finish the diagram."
           rows={6}
         />
@@ -82,12 +85,13 @@ export default function NextStepModal({
         <div className="dialog-bottom">
           <span>
             {auto
-              ? "Your 10-minute handoff is active."
+              ? "The handoff is a reminder; you can keep editing after it ends."
               : "You can update this note whenever you want."}
           </span>
-          <button className="primary-button" onClick={onClose}>
-            Done — continue
-          </button>
+          <div className="header-actions">
+            <button className="secondary-button" onClick={onDiary}>Open study log</button>
+            <button className="primary-button" onClick={onClose}>Done — continue</button>
+          </div>
         </div>
       </section>
     </div>

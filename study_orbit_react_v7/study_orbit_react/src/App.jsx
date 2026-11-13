@@ -12,6 +12,14 @@ import WeeklySchedule from "./components/WeeklySchedule.jsx";
 import AllocationCard from "./components/AllocationCard.jsx";
 import FocusShelf from "./components/FocusShelf.jsx";
 import NextStepModal from "./components/NextStepModal.jsx";
+import SubjectDiary from "./components/SubjectDiary.jsx";
+import Settings from "./components/Settings.jsx";
+import { useSessionSounds } from "./hooks/useSessionSounds.js";
+import {
+  journalEntriesForSubject,
+  preserveJournalHistory,
+  saveJournalEntry,
+} from "./lib/studyJournal.js";
 import PhasePlanner from "./components/PhasePlanner.jsx";
 import BackupManager from "./components/BackupManager.jsx";
 import { api } from "./lib/api.js";
@@ -19,6 +27,7 @@ import { clone, normalizeState, subjectName, uid } from "./lib/planner.js";
 import { migrateExport } from "./lib/legacy.js";
 import {
   dateKey,
+  blockKey,
   getSchedulePosition,
   mondayFor,
   parseDate,
@@ -40,6 +49,11 @@ export default function App() {
   const [view, setView] = useState("focus");
   const [backupsOpen, setBackupsOpen] = useState(false);
   const [editor, setEditor] = useState(null);
+  const noteEditGroup = useRef(null);
+  const goalEditGroups = useRef(new Map());
+  const [diarySubjectId, setDiarySubjectId] = useState(null);
+  const [diarySelection, setDiarySelection] = useState(null);
+  const [diaryDirty, setDiaryDirty] = useState(false);
   const dismissed = useRef(new Set());
   const [notice, setNotice] = useState("");
 
@@ -132,6 +146,7 @@ export default function App() {
     () => getSchedulePosition(activePhase, now),
     [activePhase, now],
   );
+  useSessionSounds({ phase: activePhase, now, settings: data?.settings });
   const activeSubjectId = position.event?.slot.subjectId;
   const note = activeSubjectId
     ? data?.handoffs[activeSubjectId]?.text || ""
@@ -165,26 +180,26 @@ export default function App() {
   const todayKey = dateKey(now);
   const calendarToday = useMemo(() => parseDate(todayKey), [todayKey]);
   useEffect(() => {
-    if (!data || wizard || backupsOpen) return;
+    if (!data || wizard || backupsOpen || view !== "focus") return;
     if (
       position.mode === "handoff" &&
       eventToken &&
       !dismissed.current.has(eventToken)
     ) {
       setEditor((old) =>
-        old?.source === "manual"
-          ? old
-          : old?.token === eventToken
-            ? old
-            : {
+        old || {
                 subjectId: activeSubjectId,
                 source: "auto",
                 token: eventToken,
                 end: position.event.end.toISOString(),
-              },
+                context: {
+                  phaseId: activePhase.id,
+                  date: dateKey(position.event.base),
+                  slotId: position.event.slot.id,
+                },
+        },
       );
-    } else if (position.mode !== "handoff")
-      setEditor((old) => (old?.source === "auto" ? null : old));
+    }
   }, [
     data?.phase,
     position.mode,
@@ -193,31 +208,99 @@ export default function App() {
     position.event?.end?.getTime(),
     Boolean(wizard),
     backupsOpen,
+    view,
   ]);
 
   /** @brief Open a manually editable next-step note for a subject. */
   const openEditor = useCallback((subjectId) => {
-    setEditor({ subjectId, source: "manual" });
-  }, []);
+    const event = [position.event, position.next].find((item) => item?.slot.subjectId === subjectId);
+    setEditor({ subjectId, source: "manual", context: {
+      phaseId: activePhase?.id || null,
+      date: event ? dateKey(event.base) : dateKey(new Date()),
+      slotId: event?.slot.id || null,
+    } });
+  }, [activePhase?.id, eventToken, position.next?.start?.getTime()]);
+  /** Group continuous typing into one saved diary version; every character still persists. */
+  const editNextStep = (text) => {
+    if (!editor) return;
+    const state = dataRef.current;
+    const phase = state.phases.find((p) => p.id === editor.context?.phaseId);
+    const slot = phase?.slots.find((s) => s.id === editor.context?.slotId);
+    const subject = state.subjects.find((s) => s.id === editor.subjectId);
+    const context = {
+      ...editor.context,
+      id: editor.context?.slotId ? undefined : editor.token || `note:${editor.subjectId}:${editor.context?.date}`,
+      subjectId: editor.subjectId,
+      subjectName: subject?.name || "Subject",
+      phaseName: phase?.name || "",
+      start: slot?.start ?? null,
+      end: slot?.end ?? null,
+    };
+    const key = slot ? blockKey(phase.id, parseDate(context.date), slot.id) : context.id;
+    change((d) => {
+      const entry = saveJournalEntry(d, context, { nextStep: text });
+      if (noteEditGroup.current?.key === key && noteEditGroup.current?.editor === editor) {
+        const baseline = noteEditGroup.current.baseline;
+        if (entry.revisions.length > baseline + 1)
+          entry.revisions = [...entry.revisions.slice(0, baseline), entry.revisions.at(-1)];
+      } else noteEditGroup.current = { key, editor, baseline: entry.revisions.length - 1 };
+    }, ["journal", "blocks", "handoffs"]);
+  };
+  const commitEditorNote = useCallback(() => { noteEditGroup.current = null; }, []);
   /** @brief Dismiss planning without losing autosaved text or reopening the same handoff. */
   const closeEditor = useCallback(() => {
+    commitEditorNote();
     setEditor((old) => {
       if (old?.source === "auto") dismissed.current.add(old.token);
       return null;
     });
+  }, [commitEditorNote]);
+  /** Open the subject page at a dated occurrence, independently of the handoff timer. */
+  const openDiary = useCallback((subjectId, detail = null) => {
+    const state = dataRef.current;
+    const phaseId = detail && Object.hasOwn(detail, "phaseId") ? detail.phaseId : state.phase;
+    const phase = state.phases.find((p) => p.id === phaseId);
+    const slot = phase?.slots.find((s) => s.id === detail?.slotId);
+    const subject = state.subjects.find((s) => s.id === subjectId);
+    const date = detail?.date || dateKey(new Date());
+    const id = detail?.id || (slot ? blockKey(phase.id, parseDate(date), slot.id) : undefined);
+    const record = id ? state.journal[id] || state.blocks[id] : null;
+    const stored = record?.subjectId && record.subjectId !== subjectId ? null : record;
+    setDiarySubjectId(subjectId);
+    setDiarySelection({
+      ...(stored || {}),
+      ...(detail || {}),
+      navigationKey: uid(),
+      id,
+      subjectId,
+      subjectName: subject?.name || detail?.subjectName || stored?.subjectName || "Subject",
+      phaseId: stored?.phaseId ?? phaseId ?? null,
+      phaseName: stored?.phaseName ?? detail?.phaseName ?? phase?.name ?? "",
+      date,
+      slotId: detail?.slotId ?? null,
+      start: stored?.start ?? detail?.start ?? slot?.start ?? null,
+      end: stored?.end ?? detail?.end ?? slot?.end ?? null,
+    });
+    setView("diary");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
-  /** @brief Store the next action under stable subject identity across phases. */
-  const editNextStep = (text) =>
-    change(
-      (d) => {
-        d.handoffs[editor.subjectId] = {
-          text,
-          updatedAt: new Date().toISOString(),
-        };
-      },
-      ["handoffs"],
-    );
-
+  const saveDiaryEntry = useCallback(async (context, patch) => {
+    let result;
+    change((d) => { result = saveJournalEntry(d, context, patch); }, ["journal", "blocks", "handoffs"]);
+    try {
+      await flush();
+      setNotice("Study log saved locally.");
+      return result;
+    } catch (error) {
+      setSaving("error");
+      throw error;
+    }
+  }, [change, flush]);
+  const canLeaveDiary = () => !diaryDirty || window.confirm("Leave this study log without saving your changes?");
+  const navigateView = (id) => {
+    if (id !== view && !canLeaveDiary()) return;
+    setView(id);
+  };
   /** @brief Finish pending edits before copying a complete local snapshot. */
   const saveStateBackup = async (type) => {
     if (type === "list") return api.listBackups();
@@ -233,6 +316,9 @@ export default function App() {
     dataRef.current = restored;
     setData(restored);
     setEditor(null);
+    setDiarySelection(null);
+    setDiarySubjectId(null);
+    setView("focus");
     setWizard(null);
     setSelectedDate(dateKey(new Date()));
     setFollowToday(true);
@@ -248,10 +334,14 @@ export default function App() {
     setData(next);
     setEditor(null);
     setWizard(null);
+    setDiarySelection(null);
+    setDiarySubjectId(null);
+    setView("focus");
     setNotice("Imported Study Orbit JSON file into Current_State/.");
   };
   /** @brief Activate a phase while resetting transient editors and day selection. */
   const switchPhase = (id) => {
+    if (!canLeaveDiary()) return;
     setView("focus");
     change((d) => {
       d.phase = id;
@@ -263,6 +353,7 @@ export default function App() {
   };
   /** @brief Create an isolated phase draft or independent duplicate. */
   const openWizard = (mode) => {
+    if (!canLeaveDiary()) return;
     if (mode === "create")
       setWizard({ mode: "create", phase: null, key: uid() });
     else if (activePhase) {
@@ -283,6 +374,12 @@ export default function App() {
   const savePhase = (phase) => {
     setView("focus");
     change((d) => {
+      preserveJournalHistory(d);
+      const previous = d.phases.find((p) => p.id === phase.id);
+      for (const slot of phase.slots) {
+        const old = previous?.slots.find((s) => s.id === slot.id);
+        if (old && old.subjectId !== slot.subjectId) slot.id = uid();
+      }
       for (const subject of phase.subjects)
         saveSubject(
           d,
@@ -298,7 +395,7 @@ export default function App() {
       if (existing >= 0) d.phases[existing] = phase;
       else d.phases.push(phase);
       d.phase = phase.id;
-    });
+    }, ["subjects", "phases", "handoffs", "journal", "blocks"]);
     setWizard(null);
     setNotice("Phase saved.");
   };
@@ -312,19 +409,35 @@ export default function App() {
     )
       return;
     change((d) => {
+      preserveJournalHistory(d);
       d.phases = d.phases.filter((p) => p.id !== activePhase.id);
       d.phase = d.phases[0]?.id || null;
-    });
+    }, ["phases", "journal"]);
     setEditor(null);
   };
   /** @brief Update one dated block without affecting other weeks. */
   const progressChange = useCallback(
-    (key, patch) =>
+    (key, patch, record = true) =>
       change(
         (d) => {
-          d.blocks[key] = { ...d.blocks[key], ...patch };
+          const phase = d.phases.find((p) => key.startsWith(`${p.id}:`));
+          const slot = phase?.slots.find((s) => key.endsWith(`:${s.id}`));
+          if (phase && slot) {
+            const date = key.slice(phase.id.length + 1, -slot.id.length - 1);
+            const entry = saveJournalEntry(d, {
+              subjectId: slot.subjectId, subjectName: subjectName(phase, slot.subjectId),
+              phaseId: phase.id, phaseName: phase.name, date, slotId: slot.id,
+              start: slot.start, end: slot.end,
+            }, patch);
+            if (!record) {
+              const baseline = goalEditGroups.current.get(key);
+              if (baseline !== undefined && entry.revisions.length > baseline + 1)
+                entry.revisions = [...entry.revisions.slice(0, baseline), entry.revisions.at(-1)];
+              else if (baseline === undefined) goalEditGroups.current.set(key, entry.revisions.length - 1);
+            } else goalEditGroups.current.delete(key);
+          } else d.blocks[key] = { ...d.blocks[key], ...patch };
         },
-        ["blocks"],
+        ["blocks", "journal", "handoffs"],
       ),
     [change],
   );
@@ -391,7 +504,10 @@ export default function App() {
   /** @brief Remove a subject in local memory immediately; disk persistence stays in the background. */
   const removeLibrarySubject = useCallback(
     (id) => {
-      change((state) => deleteSubject(state, id));
+      change((state) => {
+        preserveJournalHistory(state);
+        deleteSubject(state, id);
+      }, ["subjects", "phases", "handoffs", "journal"]);
       setEditor(null);
       setNotice("Subject removed from the library and its phases.");
     },
@@ -406,6 +522,16 @@ export default function App() {
       previous === dateKey(selected) ? previous : dateKey(selected),
     );
   }, [followToday, activePhase?.id, dateKey(now), eventToken]);
+  const diarySubjects = useMemo(() => {
+    if (!data) return [];
+    const subjects = new Map(data.subjects.map((s) => [s.id, s]));
+    for (const entry of Object.values(data.journal))
+      if (!subjects.has(entry.subjectId)) subjects.set(entry.subjectId, {
+        id: entry.subjectId, name: `${entry.subjectName} (archived)`,
+      });
+    return [...subjects.values()];
+  }, [data?.subjects, data?.journal]);
+  const diarySubject = diarySubjects.find((s) => s.id === diarySubjectId) || diarySubjects[0];
   if (bootError)
     return (
       <div className="error-page">
@@ -437,19 +563,21 @@ export default function App() {
         onSaveState={() =>
           saveStateBackup("create").catch((e) => setNotice(e.message))
         }
-        saving={saving}
+        saving={diaryDirty && saving !== "error" ? "draft" : saving}
       >
         <nav className="workspace-nav" aria-label="Workspace sections">
           {[
             ["focus", "Focus"],
             ["presets", "Weekly presets"],
             ["subjects", "Subjects"],
+            ["diary", "Study diary"],
+            ["settings", "Settings"],
           ].map(([id, label]) => (
             <button
               key={id}
               aria-current={view === id ? "page" : undefined}
               className={view === id ? "active" : ""}
-              onClick={() => setView(id)}
+              onClick={() => navigateView(id)}
             >
               {label}
             </button>
@@ -470,8 +598,35 @@ export default function App() {
                 subjects={data.subjects}
                 onSave={saveLibrarySubject}
                 onDelete={removeLibrarySubject}
+                onOpenDiary={openDiary}
               />
             )}
+            {view === "settings" && (
+              <Settings settings={data.settings} onChange={(settings) =>
+                change((d) => { d.settings = settings; }, ["settings"])
+              } />
+            )}
+            {view === "diary" && (diarySubject ? (
+              <SubjectDiary
+                subject={diarySubject}
+                subjects={diarySubjects}
+                entries={journalEntriesForSubject(data, diarySubject.id)}
+                handoff={data.handoffs[diarySubject.id]}
+                selection={diarySelection?.subjectId === diarySubject.id ? diarySelection : null}
+                phases={data.phases}
+                onSelectSubject={(id) => openDiary(id)}
+                onSelectEntry={(entry) => openDiary(entry.subjectId, entry)}
+                onSaveEntry={saveDiaryEntry}
+                onBack={() => setView("focus")}
+                onDirtyChange={setDiaryDirty}
+              />
+            ) : (
+              <section className="panel section-panel">
+                <h2>Study diary</h2>
+                <p>Add a subject to start recording your studying.</p>
+                <button className="primary-button" onClick={() => setView("subjects")}>Open subjects</button>
+              </section>
+            ))}
             {view === "focus" && (
               <>
                 {!activePhase ? (
@@ -517,7 +672,7 @@ export default function App() {
                         onEdit={openEditor}
                       />
                     </div>
-                    <WeekCalendar phase={activePhase} />
+                    <WeekCalendar phase={activePhase} selectedDate={selectedDate} onSelectDate={selectDate} onOpenSession={openDiary} />
                     <div className="content-grid">
                       <WeeklySchedule
                         phase={activePhase}
@@ -528,6 +683,7 @@ export default function App() {
                         progress={data.blocks}
                         onProgress={progressChange}
                         onEdit={openEditor}
+                        onOpenSession={openDiary}
                         optionalNote={data.notes[selectedDate] || ""}
                         onOptionalNote={optionalNoteChange}
                       />
@@ -590,6 +746,13 @@ export default function App() {
           subjectName={subjectName(activePhase, editor.subjectId)}
           text={data.handoffs[editor.subjectId]?.text || ""}
           onChange={editNextStep}
+          onCommit={commitEditorNote}
+          onDiary={() => {
+            commitEditorNote();
+            if (editor.source === "auto") dismissed.current.add(editor.token);
+            openDiary(editor.subjectId, editor.context);
+            setEditor(null);
+          }}
           onClose={closeEditor}
           now={now}
         />

@@ -1,5 +1,6 @@
 import { backupName, validBackupName } from "../src/lib/backupNames.js";
 import { presetErrors } from "../src/lib/availability.js";
+import { journalValidationError } from "../src/lib/studyJournal.js";
 import {
   cp,
   mkdir,
@@ -33,6 +34,8 @@ const EMPTY_STATE = Object.freeze({
   notes: {},
   handoffs: {},
   audioItems: [],
+  journal: {},
+  settings: { sessionStartSound: false, sessionEndSound: false },
 });
 
 /** @brief Reject malformed persistent structures before any filesystem changes. */
@@ -60,6 +63,16 @@ export function validateState(candidate) {
   const invalid = (message) => {
     throw Object.assign(new Error(message), { statusCode: 400 });
   };
+  if (candidate.journal !== undefined) {
+    const error = journalValidationError(candidate.journal);
+    if (error) invalid(error);
+  }
+  if (candidate.settings !== undefined) {
+    if (!candidate.settings || typeof candidate.settings !== "object" || Array.isArray(candidate.settings) ||
+        ["sessionStartSound", "sessionEndSound"].some((key) =>
+          candidate.settings[key] !== undefined && typeof candidate.settings[key] !== "boolean"))
+      invalid("Invalid session sound settings.");
+  }
   if (candidate.version !== 7)
     invalid(
       "Expected a version-7 state. Import older exports through the application.",

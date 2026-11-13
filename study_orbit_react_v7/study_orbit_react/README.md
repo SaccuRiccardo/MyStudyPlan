@@ -58,6 +58,8 @@ study_orbit_react/
 │   │   ├── AllocationCard.jsx    # weekly subject hours
 │   │   ├── FocusShelf.jsx        # favorite audio/video links
 │   │   ├── NextStepModal.jsx     # 10-minute end-of-block planning
+│   │   ├── SubjectDiary.jsx     # dated study logs, recall filters, saved versions
+│   │   ├── Settings.jsx         # independent start/end sound preferences
 │   │   ├── PhasePlanner.jsx      # availability-first phase builder
 │   │   └── BackupManager.jsx     # save/list/restore/import UI
 │   ├── hooks/
@@ -66,6 +68,8 @@ study_orbit_react/
 │       ├── api.js                # fetch client for local REST API
 │       ├── audio.js              # audio URL parsing/embedding
 │       ├── time.js               # weekday, overnight, handoff calculations
+│       ├── studyJournal.js       # session snapshots and revision history
+│       ├── sessionSounds.js      # browser chimes and boundary detection
 │       ├── planner.js            # tier allocation, auto-fill, validation
 │       └── legacy.js             # v6/v7 import validation
 └── tests/
@@ -80,6 +84,28 @@ study_orbit_react/
 **Phases:** Add your subjects → choose an effort priority (Intensive / High effort / Steady / Maintenance) → assign weekly hours → edit time slots and night-owl/3+2+2 presets → review differences and save. Create, edit, duplicate, delete and switch phases at any time. Protected mandatory lab/project blocks remain locked when editing the an existing phase.
 
 **Live sessions:** The current subject, upcoming subject, countdown, goals, completed blocks and subject allocations update live. Each session ends with a **10-minute next-step handoff**; if sessions touch, the next block begins 10 minutes late. Notes follow the **subject**, so they reappear on its next occurrence, including when the next block is on another day. Evening study is never silently added.
+
+**Study diary:** Click any calendar session, the daily schedule's subject, or a
+subject's **Study diary** button. Record **What I studied / did today**, goals,
+completion and next steps, then choose **Save study log**. Each saved edit keeps
+an earlier version under **Saved history**. Completion buttons and goal edits in
+the daily schedule also update the dated record. Use **From / To** and **Phase**
+filters for arbitrary recall periods, **This week** for weekly review, or **All
+dates** for the semester. **Add diary entry** records study outside the timetable.
+
+Next steps remain editable after the ten-minute handoff. Editing a diary next step
+updates the shared plan shown in the subject's next session; saving only the work,
+goal or completion of an older log leaves a newer plan intact. The handoff editor
+autosaves continuous typing as one version per editing pass and stays open until
+dismissed. The diary form uses explicit saves and warns before discarding drafts.
+
+**Session sounds:** In **Settings**, choose beginning and end alerts independently
+and try **Test start sound / Test end sound**. Start alerts follow the effective
+start after any preceding handoff; end alerts signal the start of planning time.
+Preferences persist locally, default off, and work across workspace pages. Keep
+Study Orbit open and the device awake; browser restrictions, mute, sleep, or long
+background timer delays can prevent alerts. Reopening does not replay old alerts;
+click a test button if browser audio needs enabling.
 
 **Focus Shelf:** Save named YouTube videos/playlists and external audio links. YouTube videos play inside the page when the video allows embedding; external links open in a new tab. Playback may require a click depending on browser autoplay policies.
 
@@ -192,6 +218,19 @@ markers. Overnight sessions split at midnight onto their actual calendar days,
 including Sunday/Monday wrap; the dated daily list retains study-day ownership
 for goals and completion. Free days stay visible. The calendar scrolls horizontally
 on smaller screens, without widening the whole page.
+The time axis always spans **00:00–24:00**, including empty days. Week navigation
+and date headings select the same week as the daily schedule. Clicking an
+overnight continuation opens the originating study day's log. The current-time
+marker appears only when viewing the current week.
+
+Diary records live in the version-7 state's `journal` object with subject, phase,
+study date and original session-time snapshots, plus saved content revisions.
+They survive timetable edits and phase/subject removal; removed subjects remain
+accessible as archived diary subjects. Recoverable older goals and completion
+are included without inventing missing study notes or save times. Existing v6/v7
+files without a journal or sound settings remain compatible. **Save State**, JSON
+export/import and restore include the diary and sound settings. Personal data
+remains excluded from Git.
 
 The Windows launcher is `../../Start Study Orbit.cmd`; its service supervisor is
 `scripts/start.mjs`. For terminal-only validation, `node scripts/start.mjs --no-open`
