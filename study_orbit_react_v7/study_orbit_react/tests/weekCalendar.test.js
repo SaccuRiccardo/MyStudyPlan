@@ -27,21 +27,21 @@ test("calendar shows full weeks and splits overnight sessions on their civil day
     result.reduce((sum, s) => sum + s.end - s.start, 0),
     slots.reduce((sum, s) => sum + s.end - s.start, 0),
   );
-  assert.deepEqual(calendarRange(result), { start: 0, end: 1440 });
+  assert.deepEqual(calendarRange(result), { start: 480, end: 1440 });
 });
-test("midnight endpoints do not produce empty cells and all timetables show 24 hours", () => {
+test("midnight endpoints do not produce empty cells and all timetables show 08:00 through midnight", () => {
   const slots = [
     { id: "math", day: 0, start: 550, end: 675 },
     { id: "law", day: 1, start: 1380, end: 1440 },
   ];
   const result = calendarSegments(slots);
   assert.equal(result.length, 2);
-  assert.deepEqual(calendarRange(result), { start: 0, end: 1440 });
+  assert.deepEqual(calendarRange(result), { start: 480, end: 1440 });
   assert.deepEqual(calendarSegments([]), []);
-  assert.deepEqual(calendarRange([]), { start: 0, end: 1440 });
+  assert.deepEqual(calendarRange([]), { start: 480, end: 1440 });
   assert.deepEqual(calendarRange(calendarSegments([
     { id: "daytime", day: 2, start: 600, end: 720 },
-  ])), { start: 0, end: 1440 });
+  ])), { start: 480, end: 1440 });
 });
 
 test("dated clicks resolve overnight continuations to the original study date", () => {

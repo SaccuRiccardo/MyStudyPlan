@@ -36,7 +36,7 @@ function WeekCalendar({ phase, selectedDate, onSelectDate, onOpenSession }) {
   const days = Array.from({ length: 7 }, (_, i) => shiftDate(monday, i));
   const segments = calendarSegments(phase.slots);
   const { start, end } = calendarRange();
-  const hours = Array.from({ length: 25 }, (_, i) => i * 60);
+  const hours = Array.from({ length: (end - start) / 60 + 1 }, (_, i) => start + i * 60);
   const weekLabel = `${monday.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} – ${days[6].toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
   return (
     <section
@@ -75,7 +75,7 @@ function WeekCalendar({ phase, selectedDate, onSelectDate, onOpenSession }) {
         </div>
       </div>
       <p className="card-desc">
-        {phase.name} · Full 24-hour view. Select a session to log your work,
+        {phase.name} · 08:00–24:00 view. Select a session to log your work,
         edit next steps or review the subject diary. Overnight sessions appear
         on the calendar day they occur.
       </p>
@@ -114,7 +114,7 @@ function WeekCalendar({ phase, selectedDate, onSelectDate, onOpenSession }) {
             style={{ gridColumn: 1, gridRow: 2 }}
           >
             {hours.map((time) => (
-              <span key={time} style={{ top: `${(time / 1440) * 100}%` }}>
+              <span key={time} style={{ top: `${((time - start) / (end - start)) * 100}%` }}>
                 {clock(time)}
               </span>
             ))}
@@ -126,7 +126,7 @@ function WeekCalendar({ phase, selectedDate, onSelectDate, onOpenSession }) {
               aria-label={displayDate(day)}
               style={{ gridColumn: index + 2, gridRow: 2 }}
             >
-              {segments.filter((s) => s.day === index).map((segment) => {
+              {segments.filter((s) => s.day === index && s.end > start && s.start < end).map((segment) => {
                 const { slot } = segment;
                 const subject = subjectOf(phase, slot.subjectId);
                 const name = slot.title || subjectName(phase, slot.subjectId);
@@ -144,8 +144,8 @@ function WeekCalendar({ phase, selectedDate, onSelectDate, onOpenSession }) {
                       slotId: slot.id,
                     })}
                     style={{
-                      top: `${(segment.start / 1440) * 100}%`,
-                      height: `${((segment.end - segment.start) / 1440) * 100}%`,
+                      top: `${((Math.max(segment.start, start) - start) / (end - start)) * 100}%`,
+                      height: `${((Math.min(segment.end, end) - Math.max(segment.start, start)) / (end - start)) * 100}%`,
                       "--subject-color": subject?.color || "#607486",
                     }}
                   >
@@ -156,7 +156,7 @@ function WeekCalendar({ phase, selectedDate, onSelectDate, onOpenSession }) {
                   </button>
                 );
               })}
-              {!segments.some((s) => s.day === index) && <span className="calendar-free">Free day</span>}
+              {!segments.some((s) => s.day === index && s.end > start && s.start < end) && <span className="calendar-free">No sessions in shown hours</span>}
             </div>
           ))}
           <CurrentWeekMarker weekStart={dateKey(monday)} start={start} end={end} />

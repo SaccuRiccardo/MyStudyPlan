@@ -121,7 +121,7 @@ add an independent diary entry for study outside the timetable.
 
 Next steps can be changed at any time, including after the ten-minute handoff;
 the latest edited next step appears in the subject's next session. The calendar
-always displays **00:00–24:00** and lets you browse earlier and later weeks.
+always displays **08:00–24:00** and lets you browse earlier and later weeks.
 **Settings** provides separate beginning/end sound switches and test buttons.
 Keep the app open and your device awake for sounds; browser audio restrictions
 may require clicking a test button after reopening it.
