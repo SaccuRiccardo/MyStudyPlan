@@ -84,6 +84,12 @@ export function validateState(candidate) {
     );
   if (candidate.subjects !== undefined && !Array.isArray(candidate.subjects))
     invalid("Expected a subject library array.");
+  const storedSubjects = [
+    ...(candidate.subjects || []),
+    ...candidate.phases.flatMap((phase) => Array.isArray(phase?.subjects) ? phase.subjects : []),
+  ];
+  if (storedSubjects.some((subject) => subject && subject.slidesFolder !== undefined && typeof subject.slidesFolder !== "string"))
+    invalid("Invalid slides folder path; expected a string.");
   if (candidate.presets !== undefined) {
     if (!Array.isArray(candidate.presets))
       invalid("Expected a preset library array.");

@@ -140,6 +140,26 @@ always displays **07:00–22:00** and lets you browse earlier and later weeks.
 Keep the app open and your device awake for sounds; browser audio restrictions
 may require clicking a test button after reopening it.
 
+## Read slides with the timer
+
+Open **Slides**, choose a subject, and save the **absolute folder path** containing
+its PDFs. Use the path on the computer running Study Orbit, for example
+`C:\Users\You\Documents\Physics slides` on Windows or
+`/Users/you/Documents/Physics slides` on macOS. The app lists PDFs in the folder
+and its subfolders. Select a PDF to read it in the page while the shared Pomodoro
+timer remains visible. **Refresh** finds newly added or renamed files.
+
+Your slides stay in their original folder; they are not uploaded or copied into
+Study Orbit. Local state, JSON exports and backups remember the folder path, not
+the PDF files. If you move the folder or use another computer, save its new path.
+Keep your own backup of the slide files. If your browser cannot display a PDF
+inside the reader, use **Open PDF in new tab**, especially on mobile.
+
+The built-in white, brown, pink and rain-like background sounds are generated
+procedurally on your device. The app does not bundle music recordings or sampled
+tracks for these sounds. Focus Shelf links and any custom audio you upload are
+content you choose from external sources; their own permissions still apply.
+
 ## Troubleshooting
 
 - **Port in use:** stop your other Study Orbit launcher with Ctrl+C and retry.

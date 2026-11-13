@@ -4,6 +4,7 @@ import {
   Coffee,
   NotebookPen,
   Sparkles,
+  Presentation,
 } from "lucide-react";
 import { formatCount, formatSlotTime, HANDOFF_MINUTES } from "../lib/time.js";
 import { subjectName } from "../lib/planner.js";
@@ -15,6 +16,7 @@ export default function DashboardWidget({
   now,
   note,
   onEdit,
+  onOpenSlides,
 }) {
   const { mode, event, next } = position;
   const until =
@@ -98,6 +100,7 @@ export default function DashboardWidget({
           </p>
         </div>
       )}
+      {mode === "study" && <button className="text-button hero-slides-link" onClick={() => onOpenSlides(event.slot.subjectId)}><Presentation size={15} /> Open slides with timer</button>}
       <div className="hero-bottom">
         <div>
           <span className="small-label">

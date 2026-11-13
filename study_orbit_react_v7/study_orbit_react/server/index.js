@@ -1,3 +1,4 @@
+import { registerSlidesRoutes } from "./slides.js";
 import express from "express";
 import {
   createBackup,
@@ -36,7 +37,9 @@ app.post("/api/backups", async (req, res) =>
 app.post("/api/backups/:name/restore", async (req, res) =>
   res.json(await restoreBackup(req.params.name)),
 );
+registerSlidesRoutes(app, { getState });
 app.use((error, _req, res, _next) => {
+  if (res.headersSent) return _next(error);
   const code =
     error.statusCode ||
     error.status ||

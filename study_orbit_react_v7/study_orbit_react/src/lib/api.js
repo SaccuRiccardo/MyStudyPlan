@@ -16,6 +16,12 @@ async function request(path, options = {}) {
   return body;
 }
 export const api = {
+  inspectSlidesFolder: (folderPath) => request("/slides/inspect", {
+    method: "POST", body: JSON.stringify({ folderPath }),
+  }),
+  listSlides: (subjectId) => request(`/subjects/${encodeURIComponent(subjectId)}/slides`),
+  slidesUrl: (subjectId, filePath) => `/api/subjects/${encodeURIComponent(subjectId)}/slides/file?path=${encodeURIComponent(filePath)}`,
+
   readState: () => request("/state"),
   writeState: (state) =>
     request("/state", { method: "PUT", body: JSON.stringify(state) }),

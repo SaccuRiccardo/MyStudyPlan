@@ -345,6 +345,13 @@ export function normalizeState(input) {
     input && typeof input === "object" && !Array.isArray(input)
       ? clone(input)
       : {};
+  // A folder path is user configuration, not PDF content; never silently discard it.
+  for (const subject of [
+    ...(Array.isArray(data.subjects) ? data.subjects : []),
+    ...(Array.isArray(data.phases) ? data.phases.flatMap((phase) => Array.isArray(phase?.subjects) ? phase.subjects : []) : []),
+  ])
+    if (subject && subject.slidesFolder !== undefined && typeof subject.slidesFolder !== "string")
+      throw new Error("Invalid slides folder path; expected a string.");
   // v6 exported JSON is intentionally compatible.
   data.version = 7;
   data.theme = ["light", "dark"].includes(data.theme) ? data.theme : "light";

@@ -1,3 +1,4 @@
+import SlidesReader from "./components/SlidesReader.jsx";
 import Pomodoro from "./components/Pomodoro.jsx";
 import { usePomodoro } from "./hooks/usePomodoro.js";
 import { usePomodoroAudio } from "./hooks/usePomodoroAudio.js";
@@ -6,7 +7,7 @@ import { playSessionSound, unlockSessionAudio, SOUND_GRACE_MS } from "./lib/sess
 import PresetLibrary from "./components/PresetLibrary.jsx";
 import { progressForWeek } from "./lib/progress.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarPlus2, ArrowRight, ShieldCheck, Target, Timer, Library, BookOpen } from "lucide-react";
+import { CalendarPlus2, ArrowRight, ShieldCheck, Target, Timer, Library, BookOpen, Presentation } from "lucide-react";
 import SubjectManager from "./components/SubjectManager.jsx";
 import { saveSubject, deleteSubject } from "./lib/subjects.js";
 import Layout from "./Layout.jsx";
@@ -57,6 +58,7 @@ export default function App() {
   const noteEditGroup = useRef(null);
   const goalEditGroups = useRef(new Map());
   const [diarySubjectId, setDiarySubjectId] = useState(null);
+  const [slidesSubjectId, setSlidesSubjectId] = useState(null);
   const [diarySelection, setDiarySelection] = useState(null);
   const [diaryDirty, setDiaryDirty] = useState(false);
   const dismissed = useRef(new Set());
@@ -322,7 +324,28 @@ export default function App() {
   const canLeaveDiary = () => !diaryDirty || window.confirm("Leave this study log without saving your changes?");
   const navigateView = (id) => {
     if (id !== view && !canLeaveDiary()) return;
+    if (id === "slides" && view !== "slides") setSlidesSubjectId((current) =>
+      data.subjects.some((subject) => subject.id === current) ? current :
+      data.subjects.some((subject) => subject.id === activeSubjectId) ? activeSubjectId : data.subjects[0]?.id || null);
     setView(id);
+  };
+  const openSlides = (subjectId = null) => {
+    if (!canLeaveDiary()) return;
+    setSlidesSubjectId(subjectId || activeSubjectId || data.subjects[0]?.id || null);
+    setView("slides");
+  };
+  const saveSlidesFolder = async (subjectId, folderPath) => {
+    const listing = await api.inspectSlidesFolder(folderPath);
+    change((d) => {
+      const subject = d.subjects.find((item) => item.id === subjectId);
+      if (!subject) throw new Error("This subject was removed. Choose another subject.");
+      subject.slidesFolder = listing.folderPath;
+    }, ["subjects"]);
+    try {
+      await flush();
+      setNotice("Slides folder saved locally.");
+      return listing;
+    } catch (error) { setSaving("error"); throw error; }
   };
   /** @brief Finish pending edits before copying a complete local snapshot. */
   const saveStateBackup = async (type) => {
@@ -594,6 +617,7 @@ export default function App() {
           {[
             ["focus", "Focus", Target],
             ["pomodoro", "Pomodoro", Timer],
+            ["slides", "Slides", Presentation],
             ["subjects", "Subjects", Library],
             ["diary", "Study diary", BookOpen],
           ].map(([id, label, Icon]) => (
@@ -607,9 +631,19 @@ export default function App() {
             </button>
           ))}
         </nav>
-        {view !== "pomodoro" && timer.running && <button className="pomodoro-running-banner" onClick={() => navigateView("pomodoro")}><Timer size={16} /> Pomodoro · {timer.mode === "focus" ? "Focus" : "Break"} · {String(Math.floor(timer.remainingSeconds / 60)).padStart(2, "0")}:{String(timer.remainingSeconds % 60).padStart(2, "0")} <span>Return to timer <ArrowRight size={14} /></span></button>}
-        <div className={`workspace-grid ${view === "focus" ? "is-focus" : ""}`}>
+        {view !== "pomodoro" && view !== "slides" && timer.running && <button className="pomodoro-running-banner" onClick={() => navigateView("pomodoro")}><Timer size={16} /> Pomodoro · {timer.mode === "focus" ? "Focus" : "Break"} · {String(Math.floor(timer.remainingSeconds / 60)).padStart(2, "0")}:{String(timer.remainingSeconds % 60).padStart(2, "0")} <span>Return to timer <ArrowRight size={14} /></span></button>}
+        <div className={`workspace-grid ${view === "focus" ? "is-focus" : view === "slides" ? "is-reader" : ""}`}>
           <div className="workspace-page">
+            {view === "slides" && <SlidesReader
+              subjects={data.subjects}
+              subjectId={slidesSubjectId || data.subjects[0]?.id}
+              onSelectSubject={setSlidesSubjectId}
+              onSaveFolder={saveSlidesFolder}
+              timer={timer}
+              onStartTimer={startPomodoroTimer}
+              ambience={{ ...ambience, available: pomodoroPreferences.ambient !== "off" }}
+              onOpenPomodoro={() => navigateView("pomodoro")}
+            />}
             {view === "pomodoro" && <Pomodoro timer={timer} preferences={pomodoroPreferences} onPreferences={updatePomodoroPreferences} ambience={ambience} onStart={startPomodoroTimer}
               subject={position.mode === "study" ? subjectName(activePhase, position.event.slot.subjectId) : null}
               sessionEnd={position.mode === "study" ? position.event.end : null} />}
@@ -627,6 +661,7 @@ export default function App() {
                 onSave={saveLibrarySubject}
                 onDelete={removeLibrarySubject}
                 onOpenDiary={openDiary}
+                onOpenSlides={openSlides}
               />
             )}
             {view === "settings" && (
@@ -691,6 +726,7 @@ export default function App() {
                         position={position}
                         now={now}
                         note={note}
+                        onOpenSlides={openSlides}
                         onEdit={openEditor}
                       />
                       <NextBlock

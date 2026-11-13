@@ -136,6 +136,31 @@ not automatically mark a scheduled study session complete.
 
 **Fresh installs:** The app creates empty local state on first launch. No subjects, phases, playlists, notes, completion records, presets or backups are bundled. Each installation keeps its own data.
 
+## Read local PDF slides
+
+**Slides** connects each subject to an absolute folder path on the computer
+running the launcher. Save a path such as `C:\Users\You\Documents\Math slides`
+or `/Users/you/Documents/Math slides`, then select a PDF from the file list.
+The list includes PDFs in subfolders; **Refresh** picks up additions and renames.
+The embedded browser PDF reader sits alongside the shared Pomodoro timer controls
+and background-sound controls, so reading does not require leaving the workspace.
+Changing subjects or documents uses the same running timer.
+
+PDFs are served directly by the local file service from the configured folder.
+The app neither uploads nor copies them into the project. Only the folder path is
+stored on the subject and included in state, JSON exports and backups. Folder
+paths can be imported on another operating system, but must be changed to the new
+machine's actual path before PDFs can be opened. Keep independent backups of the
+original documents. Missing folders, unreadable files and moved documents report
+errors without replacing the saved plan. Browser PDF support varies, particularly
+on mobile; **Open PDF in new tab** provides a fallback.
+
+**Built-in sound provenance:** white, brown, pink and rain-like ambience is
+synthesized procedurally using the browser's audio engine. No music recordings,
+commercial tracks or sampled sound libraries are bundled for this ambience.
+External media in the Focus Shelf and custom uploaded audio remain the content
+you select; these are not licensed by Study Orbit.
+
 ## 3. Migrating from Study Orbit v6
 
 **Important:** v6 stored its state in Firefox `localStorage` at `http://127.0.0.1:8765`. v7 uses actual files and opens at `http://127.0.0.1:5173`. Browsers isolate these two addresses, so an automatic transfer is not possible.

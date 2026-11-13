@@ -9,6 +9,14 @@ export function migrateExport(raw) {
   if (Array.isArray(raw.phases)) {
     if (raw.version != null && ![6, 7].includes(raw.version))
       throw new Error("Unsupported Study Orbit version.");
+    if (raw.subjects !== undefined && !Array.isArray(raw.subjects))
+      throw new Error("Invalid subject library; the current state has not been replaced.");
+    const importedSubjects = [
+      ...(raw.subjects || []),
+      ...raw.phases.flatMap((phase) => Array.isArray(phase?.subjects) ? phase.subjects : []),
+    ];
+    if (importedSubjects.some((subject) => subject && subject.slidesFolder !== undefined && typeof subject.slidesFolder !== "string"))
+      throw new Error("Invalid slides folder path; the current state has not been replaced.");
     if (raw.journal !== undefined) {
       const error = journalValidationError(raw.journal);
       if (error) throw new Error(`${error} The current state has not been replaced.`);

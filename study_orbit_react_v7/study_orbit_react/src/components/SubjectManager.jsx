@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import { SUBJECT_COLORS, TIERS, priorityLabel, uid } from "../lib/planner.js";
 
 /** @brief Edit the shared library even when no phase exists yet. */
-function SubjectManager({ subjects, onSave, onDelete, onOpenDiary }) {
+function SubjectManager({ subjects, onSave, onDelete, onOpenDiary, onOpenSlides }) {
   const [editing, setEditing] = useState(null);
   const [name, setName] = useState("");
   const [tier, setTier] = useState("A");
@@ -84,6 +84,7 @@ function SubjectManager({ subjects, onSave, onDelete, onOpenDiary }) {
           <strong><button className="subject-diary-link" onClick={() => onOpenDiary(subject.id)}>{subject.name}</button></strong>
           <small>Default priority {priorityLabel(subject.tier)}</small>
           <button className="secondary-button" onClick={() => onOpenDiary(subject.id)}>Study diary</button>
+          <button className="secondary-button" onClick={() => onOpenSlides(subject.id)}>Slides</button>
           <button
             className="secondary-button"
             aria-label={`Edit subject ${subject.name}`}
