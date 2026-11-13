@@ -1,3 +1,4 @@
+import { pomodoroSettingsError } from "./pomodoro.js";
 import { dateKey, getSchedulePosition } from "./time.js";
 
 // A background tab can refresh only once per minute. Do not replay old alerts
@@ -147,6 +148,8 @@ export async function playSessionSound(kind = "start", settings = {}) {
 
 export const MAX_SOUND_BYTES = 1024 * 1024;
 export function soundSettingsError(settings) {
+  const timerError = pomodoroSettingsError(settings.pomodoro);
+  if (timerError) return timerError;
   if (settings.soundVolume !== undefined && (!Number.isFinite(settings.soundVolume) || settings.soundVolume < 0 || settings.soundVolume > 1)) return "Invalid sound volume.";
   if (settings.customSound != null && (typeof settings.customSound !== "object" || typeof settings.customSound.name !== "string" || settings.customSound.name.length > 255 || typeof settings.customSound.data !== "string" || !/^data:audio\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/]+={0,2}$/.test(settings.customSound.data) || settings.customSound.data.length > Math.ceil(MAX_SOUND_BYTES / 3) * 4 + 100)) return "Invalid custom sound (maximum 1 MB).";
   return null;

@@ -1,7 +1,12 @@
+import Pomodoro from "./components/Pomodoro.jsx";
+import { usePomodoro } from "./hooks/usePomodoro.js";
+import { usePomodoroAudio } from "./hooks/usePomodoroAudio.js";
+import { DEFAULT_POMODORO, pomodoroSettingsError } from "./lib/pomodoro.js";
+import { playSessionSound, unlockSessionAudio, SOUND_GRACE_MS } from "./lib/sessionSounds.js";
 import PresetLibrary from "./components/PresetLibrary.jsx";
 import { progressForWeek } from "./lib/progress.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarPlus2, ArrowRight, ShieldCheck } from "lucide-react";
+import { CalendarPlus2, ArrowRight, ShieldCheck, Target, Timer, Library, BookOpen } from "lucide-react";
 import SubjectManager from "./components/SubjectManager.jsx";
 import { saveSubject, deleteSubject } from "./lib/subjects.js";
 import Layout from "./Layout.jsx";
@@ -147,6 +152,24 @@ export default function App() {
     [activePhase, now],
   );
   useSessionSounds({ phase: activePhase, now, settings: data?.settings });
+  const pomodoroPreferences = data?.settings.pomodoro || DEFAULT_POMODORO;
+  const timer = usePomodoro({ ready: Boolean(data), preferences: pomodoroPreferences, onIntervalEnd: (event) => {
+    if (!timer.audioArmed || !pomodoroPreferences.soundEnabled || Date.now() - event.completedAt > SOUND_GRACE_MS) return;
+    playSessionSound(event.mode === "focus" ? "end" : "start", data?.settings).catch((error) => setNotice(error.message));
+  } });
+  const ambience = usePomodoroAudio({ running: timer.running, mode: timer.mode, preferences: pomodoroPreferences });
+  const startPomodoroTimer = () => {
+    if (pomodoroPreferences.soundEnabled) unlockSessionAudio().catch((error) => setNotice(error.message));
+    ambience.arm();
+    timer.start();
+  };
+  const updatePomodoroPreferences = (preferences) => {
+    const error = pomodoroSettingsError(preferences);
+    if (error) return error;
+    change((d) => { d.settings.pomodoro = preferences; }, ["settings"]);
+    setNotice("Pomodoro preferences saved.");
+    return null;
+  };
   const activeSubjectId = position.event?.slot.subjectId;
   const note = activeSubjectId
     ? data?.handoffs[activeSubjectId]?.text || ""
@@ -569,22 +592,27 @@ export default function App() {
       >
         <nav className="workspace-nav" aria-label="Workspace sections">
           {[
-            ["focus", "Focus"],
-            ["subjects", "Subjects"],
-            ["diary", "Study diary"],
-          ].map(([id, label]) => (
+            ["focus", "Focus", Target],
+            ["pomodoro", "Pomodoro", Timer],
+            ["subjects", "Subjects", Library],
+            ["diary", "Study diary", BookOpen],
+          ].map(([id, label, Icon]) => (
             <button
               key={id}
               aria-current={view === id ? "page" : undefined}
               className={view === id ? "active" : ""}
               onClick={() => navigateView(id)}
             >
-              {label}
+              <Icon size={16} aria-hidden="true" /> {label}
             </button>
           ))}
         </nav>
+        {view !== "pomodoro" && timer.running && <button className="pomodoro-running-banner" onClick={() => navigateView("pomodoro")}><Timer size={16} /> Pomodoro · {timer.mode === "focus" ? "Focus" : "Break"} · {String(Math.floor(timer.remainingSeconds / 60)).padStart(2, "0")}:{String(timer.remainingSeconds % 60).padStart(2, "0")} <span>Return to timer <ArrowRight size={14} /></span></button>}
         <div className={`workspace-grid ${view === "focus" ? "is-focus" : ""}`}>
           <div className="workspace-page">
+            {view === "pomodoro" && <Pomodoro timer={timer} preferences={pomodoroPreferences} onPreferences={updatePomodoroPreferences} ambience={ambience} onStart={startPomodoroTimer}
+              subject={position.mode === "study" ? subjectName(activePhase, position.event.slot.subjectId) : null}
+              sessionEnd={position.mode === "study" ? position.event.end : null} />}
             {view === "presets" && (
               <PresetLibrary
                 presets={data.presets}

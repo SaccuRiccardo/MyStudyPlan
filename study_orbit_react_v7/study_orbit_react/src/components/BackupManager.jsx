@@ -1,11 +1,11 @@
 import { backupName } from "../lib/backupNames.js";
+import FilePicker from "./FilePicker.jsx";
 import { useDialog } from "../hooks/useDialog.js";
 import { useEffect, useState, useRef } from "react";
 import {
   Archive,
   HardDriveDownload,
   RotateCcw,
-  Upload,
   X,
   FileJson,
   FolderOpen,
@@ -163,16 +163,12 @@ export default function BackupManager({
           <button className="primary-button" disabled={busy} onClick={create}>
             <HardDriveDownload size={17} /> Save State
           </button>
-          <label className="import-button">
-            <Upload size={16} /> Import v6/v7 JSON
-            <input
-              type="file"
-              accept=".json,application/json"
-              onChange={fileImport}
-              disabled={busy}
-              hidden
-            />
-          </label>
+          <FilePicker
+            label="Import v6/v7 JSON"
+            accept=".json,application/json"
+            onChange={fileImport}
+            disabled={busy}
+          />
         </div>
         <div className="backup-list-head">
           <strong>Available snapshots</strong>

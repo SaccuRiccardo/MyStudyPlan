@@ -1,3 +1,4 @@
+import { normalizePomodoro } from "./pomodoro.js";
 import { DAYS, WEEK_MINUTES, duration, formatHours } from "./time.js";
 import { normalizeJournal } from "./studyJournal.js";
 
@@ -469,6 +470,7 @@ export function normalizeState(input) {
     sessionEndSound: data.settings?.sessionEndSound === true,
     soundVolume: Number.isFinite(data.settings?.soundVolume) ? Math.max(0, Math.min(1, data.settings.soundVolume)) : 0.8,
     customSound: data.settings?.customSound || null,
+    pomodoro: normalizePomodoro(data.settings?.pomodoro),
   };
   return data;
 }

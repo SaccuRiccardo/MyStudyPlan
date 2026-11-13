@@ -1,3 +1,4 @@
+import { DEFAULT_POMODORO } from "../src/lib/pomodoro.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { normalizeState } from "../src/lib/planner.js";
@@ -141,9 +142,9 @@ test("preserving older history survives source slot, subject and phase removal",
 test("old states default sound settings off and imports retain all new state fields", () => {
   const old = normalizeState({ version: 6 });
   assert.deepEqual(old.journal, {});
-  assert.deepEqual(old.settings, { sessionStartSound: false, sessionEndSound: false, soundVolume: 0.8, customSound: null });
+  assert.deepEqual(old.settings, { sessionStartSound: false, sessionEndSound: false, soundVolume: 0.8, customSound: null, pomodoro: { ...DEFAULT_POMODORO } });
   const state = blank();
-  state.settings = { sessionStartSound: true, sessionEndSound: false, soundVolume: 0.8, customSound: null };
+  state.settings = { sessionStartSound: true, sessionEndSound: false, soundVolume: 0.8, customSound: null, pomodoro: { ...DEFAULT_POMODORO } };
   saveJournalEntry(state, context, { work: "Exercises", nextStep: "Proofs" }, firstSave);
   saveJournalEntry(state, context, { done: true }, laterSave);
   const restored = normalizeState(migrateExport(JSON.parse(JSON.stringify(state))));

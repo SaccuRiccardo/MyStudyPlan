@@ -128,7 +128,7 @@ test("diary revisions and sound settings survive saves and complete backup resto
   const isolated = await import("../server/storage.js?diary-roundtrip");
   try {
     const plan = normalizeState(state("light"));
-    plan.settings = { sessionStartSound: true, sessionEndSound: false };
+    plan.settings = { sessionStartSound: true, sessionEndSound: false, pomodoro: { focusMinutes: 45, ambient: "rain", ambientVolume: 0.4 } };
     const context = {
       subjectId: "math", subjectName: "Mathematics", phaseId: null,
       phaseName: "", date: "2026-11-02", slotId: null, start: null, end: null,

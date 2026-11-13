@@ -109,6 +109,29 @@ click a test button if browser audio needs enabling.
 
 **Focus Shelf:** Save named YouTube videos/playlists and external audio links. YouTube videos play inside the page when the video allows embedding; external links open in a new tab. Playback may require a click depending on browser autoplay policies.
 
+**Pomodoro:** The tab beside **Focus** provides a timer for scheduled sessions or
+independent study. Defaults are **25 minutes focus / 5 minutes short break / 15
+minutes long break**, with a long break after four completed focus intervals.
+Set your own durations and long-break frequency under the timer settings, then
+choose **Save timer settings**. Breaks and subsequent focus intervals can start
+automatically if enabled. Pause, reset, skip or choose an interval directly;
+skipping unfinished focus time does not count as a completed Pomodoro. An optional
+interval-end alert uses the volume and custom sound selected in **Settings**.
+
+Choose offline **White noise**, **Brown noise**, **Pink noise**, synthesized
+**Rain**, or **Quiet**. Background volume is separate from alert volume. Sound
+follows the running timer and pauses with it; **Keep background sound during
+breaks** extends it to breaks, while **Preview sound** lets you listen while the
+timer is paused. All sound is generated on your device without streaming.
+
+The timer continues when you navigate to other workspace pages. Its running or
+paused position is stored in the browser tab's `sessionStorage`, so a reload in
+that same tab retains it. Audio requires a user gesture after reload and does not
+resume automatically. Duration and sound preferences are saved in the local JSON
+state and included in backups; the live timer position is specific to the browser
+tab. Keep the app open and the device awake for alerts. Completing a Pomodoro does
+not automatically mark a scheduled study session complete.
+
 **Save State:** Creates a folder such as `Backups/Winter exams__2026-11-04_18-25-30_UTC+01-00__07eaf551/` and copies the complete `Current_State/` tree into it. **Backups** in the UI lists snapshots; **Restore** copies one back, replacing the active folder. Changes to JSON state are otherwise autosaved to `Current_State/state.json` after a short debounce. The UI waits for queued edits to finish before making or restoring a snapshot.
 
 **Fresh installs:** The app creates empty local state on first launch. No subjects, phases, playlists, notes, completion records, presets or backups are bundled. Each installation keeps its own data.

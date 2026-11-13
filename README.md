@@ -113,6 +113,20 @@ overnight continuations make the whole week visible. On a narrow screen, scroll
 inside the calendar horizontally. The Focus Shelf and floating player remain
 available as you navigate and edit.
 
+Open **Pomodoro** beside **Focus** to study in timed intervals. Start with
+25-minute focus periods, 5-minute short breaks and 15-minute long breaks, or
+choose your own durations and how many focus intervals precede a long break.
+Automatic starts for breaks and the next focus interval are optional. Choose
+white, brown or pink noise, synthesized rain, or **Quiet**, then adjust the
+background volume. The soundtrack follows the timer; you can keep it during
+breaks or use **Preview sound** while paused. Interval-end alerts use the sound
+and alert volume from **Settings**.
+
+The timer keeps running as you move between pages and survives a reload in the
+same browser tab. After reloading, click to enable audio again. Timer preferences
+are saved with your local plan and backups. Pomodoros also work outside a scheduled
+session and do not automatically mark timetable sessions complete.
+
 Click a calendar session or a subject's **Study diary** to record what you studied,
 its completion status, and your next steps. **Save study log** keeps each saved
 version, so earlier notes stay available under **Saved history**. Filter the diary
