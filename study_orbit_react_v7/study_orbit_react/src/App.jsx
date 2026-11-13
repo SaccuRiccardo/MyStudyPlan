@@ -553,6 +553,8 @@ export default function App() {
         now={now}
         activePhase={activePhase}
         hoursDone={hoursDone}
+        view={view}
+        onNavigate={navigateView}
         onPhase={switchPhase}
         onCreate={() => openWizard("create")}
         onEdit={() => openWizard("edit")}
@@ -568,10 +570,8 @@ export default function App() {
         <nav className="workspace-nav" aria-label="Workspace sections">
           {[
             ["focus", "Focus"],
-            ["presets", "Weekly presets"],
             ["subjects", "Subjects"],
             ["diary", "Study diary"],
-            ["settings", "Settings"],
           ].map(([id, label]) => (
             <button
               key={id}

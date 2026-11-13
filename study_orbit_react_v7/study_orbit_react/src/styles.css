@@ -255,3 +255,8 @@ button:disabled { transform: none; }
 .sound-setting:has(input[type="range"]),.sound-setting:has(input[type="file"]) { min-width: 0; }
 .sound-setting:has(input[type="range"]) > span,.sound-setting:has(input[type="file"]) > span { width: 100%; min-width: 0; }
 .sound-setting input[type="range"],.sound-setting input[type="file"] { display: block; width: 100%; height: auto; margin-top: 12px; max-width: 100%; }
+
+.sidebar-nav { display: grid; gap: 8px; }
+.sidebar-nav button { display: flex; align-items: center; gap: 10px; min-height: 44px; width: 100%; padding: 12px; text-align: left; border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--text); font-size: 12px; font-weight: 700; }
+.sidebar-nav button:hover,.sidebar-nav button.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+@media(max-width:850px) { .sidebar-nav { grid-template-columns: repeat(2,minmax(0,1fr)); } }

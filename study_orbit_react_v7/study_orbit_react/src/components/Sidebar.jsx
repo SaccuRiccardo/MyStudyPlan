@@ -9,6 +9,8 @@ import {
   Moon,
   ArchiveRestore,
   Monitor,
+  Settings,
+  CalendarDays,
 } from "lucide-react";
 import { formatClock, displayDate, formatHours } from "../lib/time.js";
 import { scheduledHours } from "../lib/planner.js";
@@ -19,6 +21,8 @@ export default function Sidebar({
   now,
   activePhase,
   hoursDone,
+  view,
+  onNavigate,
   onPhase,
   onCreate,
   onEdit,
@@ -93,6 +97,17 @@ export default function Sidebar({
           <CirclePlus size={15} /> Create a phase
         </button>
       </div>
+      <nav className="sidebar-nav" aria-label="Planning and settings">
+        {[
+          ["presets", "Weekly presets", CalendarDays],
+          ["settings", "Settings", Settings],
+        ].map(([id, label, Icon]) => (
+          <button key={id} type="button" className={view === id ? "active" : ""}
+            aria-current={view === id ? "page" : undefined} onClick={() => onNavigate(id)}>
+            <Icon size={17} aria-hidden="true" /> {label}
+          </button>
+        ))}
+      </nav>
       <div className="sidebar-spacer" />
       <div className="progress-box">
         <p className="eyebrow">THIS WEEK</p>

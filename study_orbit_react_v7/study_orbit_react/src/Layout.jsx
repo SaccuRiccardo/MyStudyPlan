@@ -7,6 +7,8 @@ export default function Layout({
   now,
   activePhase,
   hoursDone,
+  view,
+  onNavigate,
   onPhase,
   onCreate,
   onEdit,
@@ -25,6 +27,8 @@ export default function Layout({
         now={now}
         activePhase={activePhase}
         hoursDone={hoursDone}
+        view={view}
+        onNavigate={onNavigate}
         onPhase={onPhase}
         onCreate={onCreate}
         onEdit={onEdit}
