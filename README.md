@@ -10,6 +10,10 @@ Everything here was done by **ChatGPT**. I’m just a student who didn’t want 
 crazy subscription plans for stupid applications that everyone could apparently
 vibe code. So, naturally, I asked ChatGPT to vibe code one more application.
 
+And no, I’m not paying for ChatGPT either: this is a **free one-month trial**.
+I refused to pay for a productivity app and then used a free trial to build one.
+The budget is zero. The requests are apparently unlimited.
+
 My contribution: “can you also add this?” Approximately 400 times.
 ChatGPT’s contribution: everything else.
 
