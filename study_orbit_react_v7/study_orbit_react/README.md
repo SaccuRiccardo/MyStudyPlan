@@ -218,7 +218,7 @@ markers. Overnight sessions split at midnight onto their actual calendar days,
 including Sunday/Monday wrap; the dated daily list retains study-day ownership
 for goals and completion. Free days stay visible. The calendar scrolls horizontally
 on smaller screens, without widening the whole page.
-The time axis always spans **08:00–24:00**, including empty days. Week navigation
+The time axis always spans **07:00–22:00**, including empty days. Week navigation
 and date headings select the same week as the daily schedule. Clicking an
 overnight continuation opens the originating study day's log. The current-time
 marker appears only when viewing the current week.

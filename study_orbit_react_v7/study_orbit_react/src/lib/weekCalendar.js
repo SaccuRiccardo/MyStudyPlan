@@ -23,9 +23,9 @@ export function calendarSegments(slots) {
     .sort((a, b) => a.day - b.day || a.start - b.start);
 }
 
-/** Show 08:00 through midnight, even when the timetable is empty. */
+/** Show 07:00 through 22:00, even when the timetable is empty. */
 export function calendarRange() {
-  return { start: 480, end: 1440 };
+  return { start: 420, end: 1320 };
 }
 
 /** Resolve a visible segment to its originating study date, including last Sunday's continuation. */

@@ -75,7 +75,7 @@ function WeekCalendar({ phase, selectedDate, onSelectDate, onOpenSession }) {
         </div>
       </div>
       <p className="card-desc">
-        {phase.name} · 08:00–24:00 view. Select a session to log your work,
+        {phase.name} · 07:00–22:00 view. Select a session to log your work,
         edit next steps or review the subject diary. Overnight sessions appear
         on the calendar day they occur.
       </p>
