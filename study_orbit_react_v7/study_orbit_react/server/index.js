@@ -1,3 +1,4 @@
+import { fetchToolMetadata } from "./toolMetadata.js";
 import { registerSlidesRoutes } from "./slides.js";
 import express from "express";
 import {
@@ -26,6 +27,10 @@ app.use("/api", (req, res, next) => {
   )
     return res.status(415).json({ error: "Expected application/json" });
   next();
+});
+app.post("/api/tools/metadata", async (req, res) => {
+  try { res.json(await fetchToolMetadata(req.body?.url)); }
+  catch (error) { res.status(400).json({ error: error.message || "Preview unavailable." }); }
 });
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.get("/api/state", async (_req, res) => res.json(await getState()));

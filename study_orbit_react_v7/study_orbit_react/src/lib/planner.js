@@ -1,3 +1,4 @@
+import { toolsError } from "./tools.js";
 import { normalizePomodoro } from "./pomodoro.js";
 import { DAYS, WEEK_MINUTES, duration, formatHours } from "./time.js";
 import { normalizeJournal } from "./studyJournal.js";
@@ -471,6 +472,9 @@ export function normalizeState(input) {
           typeof item.url === "string",
       )
     : [];
+  const toolError = toolsError(data.tools);
+  if (toolError) throw new Error(toolError);
+  data.tools ||= [];
   data.journal = normalizeJournal(data.journal);
   data.settings = {
     sessionStartSound: data.settings?.sessionStartSound === true,

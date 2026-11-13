@@ -294,3 +294,17 @@ Only assigned sessions are saved and counted in progress. Reopening a phase keep
 your subject choices and exposes the remaining availability for manual planning.
 
 Session alerts now use a stronger repeated tone. In **Settings**, adjust **Alert volume** or **Upload your own sound** (up to 1 MB). Test either alert to preview it, or choose **Use default alert** to reset. Custom audio plays for up to 15 seconds and stays in your local state and backups.
+
+## Tools Library
+
+The sidebar's **Tools Library** is a single-page grid of saved work links.
+**Add Tool** looks up a pasted URL's Open Graph/Twitter cover, title and site icon;
+name and category can be edited before saving. If a site has no preview or blocks
+requests, save it manually; failed cover/icon images fall back to a site initial.
+Search matches names, addresses and categories. Default filters include Design,
+Dev and Admin; custom categories appear automatically. Cards open new tabs, and
+arrow controls reorder the complete shelf, including when filters are applied.
+The optional version-7 `tools` array keeps the ordered records in local state,
+JSON import/export and backups. Existing workspaces start with an empty library.
+Metadata requests have time/size limits and validate public destinations through
+redirects; local service URLs can be saved manually without fetching a preview.

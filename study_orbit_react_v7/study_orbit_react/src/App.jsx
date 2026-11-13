@@ -1,3 +1,4 @@
+import ToolsLibrary from "./components/ToolsLibrary.jsx";
 import SlidesReader from "./components/SlidesReader.jsx";
 import Pomodoro from "./components/Pomodoro.jsx";
 import { usePomodoro } from "./hooks/usePomodoro.js";
@@ -632,8 +633,9 @@ export default function App() {
           ))}
         </nav>
         {view !== "pomodoro" && view !== "slides" && timer.running && <button className="pomodoro-running-banner" onClick={() => navigateView("pomodoro")}><Timer size={16} /> Pomodoro · {timer.mode === "focus" ? "Focus" : "Break"} · {String(Math.floor(timer.remainingSeconds / 60)).padStart(2, "0")}:{String(timer.remainingSeconds % 60).padStart(2, "0")} <span>Return to timer <ArrowRight size={14} /></span></button>}
-        <div className={`workspace-grid ${view === "focus" ? "is-focus" : view === "slides" ? "is-reader" : ""}`}>
+        <div className={`workspace-grid ${view === "focus" ? "is-focus" : view === "slides" || view === "tools" ? "is-reader" : ""}`}>
           <div className="workspace-page">
+            {view === "tools" && <ToolsLibrary tools={data.tools} onChange={(tools) => change((d) => { d.tools = tools; }, ["tools"])} />}
             {view === "slides" && <SlidesReader
               subjects={data.subjects}
               subjectId={slidesSubjectId || data.subjects[0]?.id}

@@ -11,6 +11,7 @@ import {
   Monitor,
   Settings,
   CalendarDays,
+  Library,
 } from "lucide-react";
 import { formatClock, displayDate, formatHours } from "../lib/time.js";
 import { scheduledHours } from "../lib/planner.js";
@@ -99,6 +100,7 @@ export default function Sidebar({
       </div>
       <nav className="sidebar-nav" aria-label="Planning and settings">
         {[
+          ["tools", "Tools Library", Library],
           ["presets", "Weekly presets", CalendarDays],
           ["settings", "Settings", Settings],
         ].map(([id, label, Icon]) => (

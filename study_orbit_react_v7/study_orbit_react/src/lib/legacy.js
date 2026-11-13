@@ -1,3 +1,4 @@
+import { toolsError } from "./tools.js";
 import { soundSettingsError } from "./sessionSounds.js";
 import { presetErrors } from "./availability.js";
 import { journalValidationError } from "./studyJournal.js";
@@ -6,6 +7,8 @@ import { journalValidationError } from "./studyJournal.js";
 export function migrateExport(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw))
     throw new Error("Backup must contain an object");
+  const toolError = toolsError(raw.tools);
+  if (toolError) throw new Error(toolError);
   if (Array.isArray(raw.phases)) {
     if (raw.version != null && ![6, 7].includes(raw.version))
       throw new Error("Unsupported Study Orbit version.");

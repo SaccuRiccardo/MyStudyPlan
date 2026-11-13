@@ -1,3 +1,4 @@
+import { toolsError } from "../src/lib/tools.js";
 import { soundSettingsError } from "../src/lib/sessionSounds.js";
 import { backupName, validBackupName } from "../src/lib/backupNames.js";
 import { presetErrors } from "../src/lib/availability.js";
@@ -64,6 +65,8 @@ export function validateState(candidate) {
   const invalid = (message) => {
     throw Object.assign(new Error(message), { statusCode: 400 });
   };
+  const toolError = toolsError(candidate.tools);
+  if (toolError) invalid(toolError);
   if (candidate.journal !== undefined) {
     const error = journalValidationError(candidate.journal);
     if (error) invalid(error);

@@ -226,3 +226,13 @@ are also allowed; the 90-minute minimum and half-hour increments apply to autofi
 Actual overlaps, invalid times and conflicts with explicitly unavailable time must
 be fixed. Errors identify the day, times and subject, then explain whether to move,
 shorten, unlock or split a session, adjust the blocked period, or select +1 day.
+
+## Tools Library
+
+Open **Tools Library** in the left sidebar and select **Add Tool**. Paste a web
+address to fetch its title and preview, then customize its name and optional
+category. Sites that block previews can still be saved with a name and a clean
+site icon. Click a card to open it in a new tab; use search, category filters,
+and the arrow/edit/delete controls to arrange your shelf. Saved tools and their
+order are included in local state, backups, and JSON exports. Preview fetching
+requires internet access; saved links remain available offline.

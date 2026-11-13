@@ -1,0 +1,41 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Search, ExternalLink, Pencil, Trash2, ArrowLeft, ArrowRight, X, Globe, Link, LoaderCircle, Library } from "lucide-react";
+import { uid } from "../lib/planner.js";
+import { toolUrl, reorderTool } from "../lib/tools.js";
+import { api } from "../lib/api.js";
+import { useDialog } from "../hooks/useDialog.js";
+
+function Preview({ tool }) {
+  const [failed, setFailed] = useState(0);
+  useEffect(()=>setFailed(0),[tool.image,tool.icon]);
+  const source = failed === 0 && tool.image ? tool.image : failed < 2 && tool.icon ? tool.icon : "";
+  return <div className={`tool-preview ${source && failed === 0 && tool.image ? "has-image" : "is-icon"}`}>{source ? <img key={`${source}:${failed}`} src={source} alt="" loading="lazy" referrerPolicy="no-referrer" onError={()=>setFailed(failed===0 && tool.image ? 1 : 2)} /> : <span className="tool-monogram" aria-hidden="true">{new URL(tool.url).hostname.replace(/^www\./,'').slice(0,1).toUpperCase()}</span>}<ExternalLink className="tool-launch" size={17} /></div>;
+}
+function ToolEditor({ initial, categories, onSave, onClose }) {
+  const [draft,setDraft]=useState(initial || {url:'',title:'',category:'',image:'',icon:''});
+  const [fetching,setFetching]=useState(false),[notice,setNotice]=useState(''),[error,setError]=useState('');
+  const titleEdited=useRef(false), generation=useRef(0),dialog=useRef(null);
+  useDialog(dialog,onClose);
+  useEffect(()=>{
+    const request=++generation.current;
+    setFetching(false);setNotice('');
+    if(!draft.url.trim() || draft.url===initial?.url)return;
+    let url;try{url=toolUrl(draft.url);}catch{return;}
+    const timer=setTimeout(async()=>{
+      setFetching(true);
+      try{const metadata=await api.toolMetadata(url);if(request!==generation.current)return;setDraft(current=>({...current,title:titleEdited.current ? current.title : metadata.title,image:metadata.image || '',icon:metadata.icon || ''}));setNotice('Preview found. Make it yours before saving.');}
+      catch(failure){if(request===generation.current)setNotice(`${failure.message} You can enter a name and save without a preview.`);}
+      finally{if(request===generation.current)setFetching(false);}
+    },500);
+    return()=>{clearTimeout(timer);generation.current++;};
+  },[draft.url,initial?.url]);
+  const submit=e=>{e.preventDefault();try{const url=toolUrl(draft.url);if(!draft.title.trim())throw new Error('Enter a tool name.');onSave({...draft,id:initial?.id || uid(),url,title:draft.title.trim(),category:draft.category.trim()});onClose();}catch(failure){setError(failure.message);}};
+  return <div className="dialog-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section ref={dialog} className="dialog tool-editor" role="dialog" aria-modal="true" aria-labelledby="toolEditorTitle"><div className="dialog-top"><span className="dialog-caption"><Link size={16}/> YOUR WORK TOOLKIT</span><button className="close-button" aria-label="Close tool editor" onClick={onClose}><X size={18}/></button></div><h2 id="toolEditorTitle">{initial ? 'Edit tool' : 'Add a tool'}</h2><p className="card-desc">Paste a link. We’ll look for its title and cover image.</p><form onSubmit={submit}><label>Website URL<input autoFocus type="text" required maxLength={4096} placeholder="https://example.com" value={draft.url} onChange={e=>{titleEdited.current=false;setDraft({...draft,url:e.target.value,image:'',icon:''});setError('')}}/></label><p className="tool-preview-status" role="status">{fetching ? <><LoaderCircle size={14}/> Looking up the website…</> : notice || 'A preview is optional. Your link works without one.'}</p><label>Tool name<input required maxLength={150} value={draft.title} placeholder="Give this tool a name" onChange={e=>{titleEdited.current=true;setDraft({...draft,title:e.target.value})}}/></label><label>Category <span>(optional)</span><input list="toolCategories" maxLength={50} value={draft.category} placeholder="Design, Dev, Admin…" onChange={e=>setDraft({...draft,category:e.target.value})}/></label><datalist id="toolCategories">{categories.map(c=><option value={c} key={c}/>)}</datalist>{draft.image && <div className="tool-editor-cover"><Preview tool={{...draft,url:toolUrl(draft.url)}}/><button type="button" className="text-button" onClick={()=>setDraft({...draft,image:''})}>Remove cover image</button></div>}{error && <p role="alert" className="form-error">{error}</p>}<div className="dialog-bottom"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" type="submit">{initial ? 'Save changes' : 'Add tool'}</button></div></form></section></div>;
+}
+export default function ToolsLibrary({tools,onChange}) {
+  const [search,setSearch]=useState(''),[category,setCategory]=useState('All'),[editor,setEditor]=useState(null);
+  const categories=useMemo(()=>[...new Set(['Design','Dev','Admin',...tools.map(t=>t.category).filter(Boolean)])].sort(),[tools]);
+  const visible=tools.filter(t=>(category==='All'||t.category===category)&&`${t.title} ${t.url} ${t.category}`.toLowerCase().includes(search.toLowerCase()));
+  const save=tool=>onChange(tools.some(t=>t.id===tool.id)?tools.map(t=>t.id===tool.id?tool:t):[...tools,tool]);
+  return <section className="tools-library" aria-labelledby="toolsTitle"><div className="tools-heading"><div><span className="panel-overline">A PLACE FOR EVERY GOOD TOOL</span><h2 id="toolsTitle">Tools Library<span>.</span></h2><p>Your daily essentials, together on one shelf.</p></div><button className="primary-button" onClick={()=>setEditor({})}><Plus size={17}/> Add Tool</button></div><div className="tools-toolbar"><label className="tools-search"><Search size={18}/><input aria-label="Search tools" type="search" placeholder="Find a tool, website or category…" value={search} onChange={e=>setSearch(e.target.value)}/></label><span>{visible.length} of {tools.length} tools</span></div><div className="tool-categories" role="group" aria-label="Tool categories">{['All',...categories].map(c=><button key={c} aria-pressed={category===c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div>{!tools.length ? <div className="panel tools-empty"><Library size={36}/><h3>Build your everyday bookshelf.</h3><p>Save the tools you reach for. Give each one a place, then open it in a click.</p><button className="secondary-button" onClick={()=>setEditor({})}><Plus size={16}/> Add your first tool</button></div> : !visible.length ? <div className="panel tools-empty"><Search size={28}/><h3>No tools found</h3><button className="text-button" onClick={()=>{setSearch('');setCategory('All')}}>Clear search and filters</button></div> : <div className="tools-grid">{visible.map(tool=>{const index=tools.indexOf(tool);return <article className="tool-card panel" key={tool.id}><a className="tool-card-link" href={tool.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${tool.title} in a new tab`}><Preview tool={tool}/><div className="tool-card-copy"><div className="tool-card-title"><h3>{tool.title}</h3>{tool.category && <span>{tool.category}</span>}</div><p><Globe size={12}/>{new URL(tool.url).hostname.replace(/^www\./,'')}</p></div></a><div className="tool-card-actions"><span>YOUR TOOLKIT</span><button className="icon-button tiny" aria-label={`Move ${tool.title} earlier`} disabled={index===0} onClick={()=>onChange(reorderTool(tools,tool.id,-1))}><ArrowLeft size={14}/></button><button className="icon-button tiny" aria-label={`Move ${tool.title} later`} disabled={index===tools.length-1} onClick={()=>onChange(reorderTool(tools,tool.id,1))}><ArrowRight size={14}/></button><button className="icon-button tiny" aria-label={`Edit ${tool.title}`} onClick={()=>setEditor(tool)}><Pencil size={14}/></button><button className="icon-button tiny" aria-label={`Delete ${tool.title}`} onClick={()=>{if(window.confirm(`Remove “${tool.title}” from your Tools Library?`))onChange(tools.filter(t=>t.id!==tool.id))}}><Trash2 size={14}/></button></div></article>})}</div>}{editor && <ToolEditor initial={editor.id ? editor : null} categories={categories} onSave={save} onClose={()=>setEditor(null)}/>}</section>;
+}

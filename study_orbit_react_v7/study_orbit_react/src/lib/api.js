@@ -16,6 +16,7 @@ async function request(path, options = {}) {
   return body;
 }
 export const api = {
+  toolMetadata: (url) => request("/tools/metadata", { method: "POST", body: JSON.stringify({ url }) }),
   inspectSlidesFolder: (folderPath) => request("/slides/inspect", {
     method: "POST", body: JSON.stringify({ folderPath }),
   }),
