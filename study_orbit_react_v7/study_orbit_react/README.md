@@ -142,7 +142,7 @@ not automatically mark a scheduled study session complete.
 running the launcher. Save a path such as `C:\Users\You\Documents\Math slides`
 or `/Users/you/Documents/Math slides`, then select a PDF from the file list.
 The list includes PDFs in subfolders; **Refresh** picks up additions and renames.
-The embedded browser PDF reader sits alongside the shared Pomodoro timer controls
+The built-in PDF.js reader sits alongside the shared Pomodoro timer controls
 and background-sound controls, so reading does not require leaving the workspace.
 Changing subjects or documents uses the same running timer.
 
@@ -152,8 +152,8 @@ stored on the subject and included in state, JSON exports and backups. Folder
 paths can be imported on another operating system, but must be changed to the new
 machine's actual path before PDFs can be opened. Keep independent backups of the
 original documents. Missing folders, unreadable files and moved documents report
-errors without replacing the saved plan. Browser PDF support varies, particularly
-on mobile; **Open PDF in new tab** provides a fallback.
+errors without replacing the saved plan. **Open PDF in new tab** provides browser
+printing and download options.
 
 **Built-in sound provenance:** white, brown, pink and rain-like ambience is
 synthesized procedurally using the browser's audio engine. No music recordings,
@@ -316,7 +316,14 @@ lookup** refreshes metadata while preserving a manually chosen cover. Some sites
 including sign-in-based apps, do not supply a usable public preview; the lookup
 uses a separate request and cannot access your signed-in browser session.
 
-When you switch workspace sections, the slides reader stays loaded in the
-background. Returning to **Slides** keeps your selected PDF, page, scroll position
-and zoom within the open app. Opening Timer settings from a fullscreen reader
-exits fullscreen and keeps the document ready for your return.
+The slides reader saves a bookmark for each PDF: page, zoom and the exact position
+within the page. Switching app sections, changing PDFs and reloading the page
+restore that position. The last selected PDF is remembered per subject/folder.
+Bookmarks stay in this browser profile (localStorage); they are separate from
+JSON study-state backups and do not alter your PDF files. Page/zoom controls,
+selectable text and **Find** are built into the reader. Use **Open PDF in new tab**
+for browser printing, downloads, or password-protected PDFs.
+
+After updating, restart the normal launcher so it installs the PDF reader package.
+PDF rendering uses Mozilla PDF.js (Apache-2.0); its license is included in
+`public/licenses/pdfjs.txt`. The project’s MIT license remains unchanged.

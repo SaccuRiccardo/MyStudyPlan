@@ -168,8 +168,8 @@ timer remains visible. **Refresh** finds newly added or renamed files.
 Your slides stay in their original folder; they are not uploaded or copied into
 Study Orbit. Local state, JSON exports and backups remember the folder path, not
 the PDF files. If you move the folder or use another computer, save its new path.
-Keep your own backup of the slide files. If your browser cannot display a PDF
-inside the reader, use **Open PDF in new tab**, especially on mobile.
+Keep your own backup of the slide files. **Open PDF in new tab** provides browser
+printing, downloads and a fallback for protected documents.
 
 The built-in white, brown, pink and rain-like background sounds are generated
 procedurally on your device. The app does not bundle music recordings or sampled
@@ -258,7 +258,14 @@ URL** or **Upload preview image** (PNG/JPG/WebP, up to 1 MB). Uploaded covers ar
 saved locally. **Retry website lookup** checks the site again without replacing
 your manually chosen cover.
 
-When you switch workspace sections, the slides reader stays loaded in the
-background. Returning to **Slides** keeps your selected PDF, page, scroll position
-and zoom within the open app. Opening Timer settings from a fullscreen reader
-exits fullscreen and keeps the document ready for your return.
+The slides reader saves a bookmark for each PDF: page, zoom and the exact position
+within the page. Switching app sections, changing PDFs and reloading the page
+restore that position. The last selected PDF is remembered per subject/folder.
+Bookmarks stay in this browser profile (localStorage); they are separate from
+JSON study-state backups and do not alter your PDF files. Page/zoom controls,
+selectable text and **Find** are built into the reader. Use **Open PDF in new tab**
+for browser printing, downloads, or password-protected PDFs.
+
+After updating, restart the normal launcher so it installs the PDF reader package.
+PDF rendering uses Mozilla PDF.js (Apache-2.0); its license is included in
+`public/licenses/pdfjs.txt`. The project’s MIT license remains unchanged.

@@ -452,3 +452,19 @@ button:disabled { transform: none; }
 
 /* A hidden reader retains its native PDF state without occupying a grid cell. */
 .slides-persistent-view[hidden] { display: none !important; }
+
+/* The app owns PDF coordinates so a browser/plugin resize cannot erase a reading position. */
+.pdf-reader { display:flex; flex:1; flex-direction:column; min-height:0; min-width:0; }
+.pdf-controls { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:9px 12px; background:var(--card); border-bottom:1px solid var(--line); font-size:11px; color:var(--muted); }
+.pdf-controls label { display:flex; align-items:center; gap:5px; }
+.pdf-controls input { width:60px; border:1px solid var(--line); border-radius:6px; padding:6px; color:var(--text); background:var(--card-muted); font:inherit; }
+.pdf-controls .secondary-button { padding:6px 10px; }
+.pdf-controls .pdf-find { margin-left:auto; }
+.pdf-controls .pdf-find input { width:130px; }
+.pdf-canvas-area { position:relative; flex:1; min-height:0; background:#525659; }
+.pdf-scroll-container { position:absolute; inset:0; overflow:auto; overscroll-behavior:contain; }
+.pdf-scroll-container .pdfViewer { min-height:100%; }
+.pdf-loading { position:absolute; inset:0; display:grid; place-items:center; padding:25px; text-align:center; background:var(--card-muted); color:var(--muted); font-size:13px; }
+.pdf-scroll-container .pdfViewer .page { box-sizing:content-box; }
+.pdf-scroll-container .pdfViewer .textLayer { user-select:text; }
+@media(max-width:700px) { .pdf-controls .pdf-find { margin-left:0; } }

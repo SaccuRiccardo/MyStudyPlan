@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+import path from "node:path";
 import { fetchToolMetadata } from "./toolMetadata.js";
 import { registerSlidesRoutes } from "./slides.js";
 import express from "express";
@@ -32,6 +34,9 @@ app.post("/api/tools/metadata", async (req, res) => {
   try { res.json(await fetchToolMetadata(req.body?.url)); }
   catch (error) { res.status(400).json({ error: error.message || "Preview unavailable." }); }
 });
+const pdfjsRoot = path.dirname(createRequire(import.meta.url).resolve("pdfjs-dist/package.json"));
+for (const [route, directory] of [["cmaps", "cmaps"], ["standard_fonts", "standard_fonts"], ["wasm", "wasm"], ["images", "web/images"]])
+  app.use(`/api/pdfjs-assets/${route}`, express.static(path.join(pdfjsRoot, directory), { index: false }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.get("/api/state", async (_req, res) => res.json(await getState()));
 app.put("/api/state", async (req, res) => res.json(await putState(req.body)));

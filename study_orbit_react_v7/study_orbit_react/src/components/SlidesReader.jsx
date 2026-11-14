@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { slideKey, readSelectedSlide, saveSelectedSlide } from "../lib/slidePositions.js";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen, ExternalLink, FileText, FolderOpen, Maximize2, Minimize2,
   Pause, Play, RefreshCw, RotateCcw, Search, SlidersHorizontal, Timer, Volume2, VolumeX,
 } from "lucide-react";
 import { api } from "../lib/api.js";
+
+const PdfReader = lazy(() => import("./PdfReader.jsx"));
 
 const clock = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 const intervalName = (mode) => mode === "focus" ? "Focus" : mode === "longBreak" ? "Long break" : "Short break";
@@ -36,7 +39,10 @@ export default function SlidesReader({
   const applyListing = (result, id) => {
     setListing({ ...result, subjectId: id });
     setListingRevision((previous) => previous + 1);
-    setSelectedPath((previous) => result.files.some((file) => file.path === previous) ? previous : result.files[0]?.path || "");
+    setSelectedPath((previous) => {
+      const remembered = readSelectedSlide(slideKey(id, result.folderPath));
+      return [remembered, previous].find((path) => result.files.some((file) => file.path === path)) || result.files[0]?.path || "";
+    });
     setViewerError("");
   };
 
@@ -91,6 +97,10 @@ export default function SlidesReader({
     file.path.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())), [files, search]);
   const selected = files.find((file) => file.path === selectedPath);
   const pdfUrl = selected ? `${api.slidesUrl(activeId, selected.path)}&revision=${listingRevision}` : "";
+
+  useEffect(() => {
+    if (selected && listing?.folderPath) saveSelectedSlide(slideKey(activeId, listing.folderPath), selected.path);
+  }, [activeId, listing?.folderPath, selected?.path]);
 
   async function saveFolder(event) {
     event.preventDefault();
@@ -183,8 +193,9 @@ export default function SlidesReader({
           <div className="slides-document">
             {selected ? <>
               <div className="slides-document-heading"><strong title={selected.path}>{selected.name}</strong><a className="text-button" href={pdfUrl} target="_blank" rel="noopener noreferrer">Open PDF in new tab <ExternalLink size={13} /></a></div>
-              <iframe className="slides-pdf-frame" title={`PDF slides: ${selected.name}`} src={`${pdfUrl}#view=FitH`} onError={() => setViewerError("The PDF could not be displayed. Refresh the folder or use Open PDF in new tab.")} />
-              <p className="slides-viewer-hint">Use the PDF toolbar to change pages or zoom. If your browser cannot embed PDFs, choose Open PDF in new tab.</p>
+              <Suspense fallback={<p className="slides-list-message">Loading the PDF reader…</p>}><PdfReader key={pdfUrl} url={pdfUrl} name={selected.name} active={active}
+                positionKey={slideKey(activeId, listing.folderPath, selected.path)} /></Suspense>
+              <p className="slides-viewer-hint">Your page, zoom and exact reading position save in this browser as you read. Use Open PDF in new tab for your browser’s print and download options.</p>
             </> : <div className="slides-document-empty"><BookOpen size={38} /><h3>{savedFolder ? "Your next topic awaits." : "Bring your slides into focus."}</h3><p>{savedFolder ? "Choose a PDF from the list to start reading." : "Save a subject's folder path above. Its PDFs will open here, with your timer always in view."}</p></div>}
           </div>
         </div>

@@ -24,6 +24,8 @@ export function checkDependencies(root, report = false) {
       "-e",
       `
     for (const name of ['express','react','react-dom','lucide-react','@vitejs/plugin-react','vite']) await import(name);
+    const { createRequire } = await import('node:module');
+    createRequire(import.meta.url).resolve('pdfjs-dist/package.json');
     const esbuild = await import('esbuild');
     esbuild.transformSync('const answer = 42', { loader: 'js' });
   `,

@@ -638,7 +638,7 @@ export default function App() {
         <div className={`workspace-grid ${view === "focus" ? "is-focus" : view === "slides" || view === "tools" ? "is-reader" : ""}`}>
           <div className="workspace-page">
             {view === "tools" && <ToolsLibrary tools={data.tools} onChange={(tools) => change((d) => { d.tools = tools; }, ["tools"])} />}
-            {/* Keep the native PDF viewer mounted so its page, scroll and zoom survive navigation. */}
+            {/* Keep the reader and PDF document cache available between workspace sections. */}
             {(slidesOpened || view === "slides") && <div className="slides-persistent-view" hidden={view !== "slides"}><SlidesReader
               active={view === "slides"}
               subjects={data.subjects}
