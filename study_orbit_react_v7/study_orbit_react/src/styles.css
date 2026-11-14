@@ -468,3 +468,8 @@ button:disabled { transform: none; }
 .pdf-scroll-container .pdfViewer .page { box-sizing:content-box; }
 .pdf-scroll-container .pdfViewer .textLayer { user-select:text; }
 @media(max-width:700px) { .pdf-controls .pdf-find { margin-left:0; } }
+
+.pdf-zoom-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.pdf-zoom-controls input { width: 76px; }
+.pdf-zoom-controls > button[title] { min-width: 30px; font-size: 15px; line-height: 1; }
+.pdf-scroll-container:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }

@@ -195,7 +195,7 @@ export default function SlidesReader({
               <div className="slides-document-heading"><strong title={selected.path}>{selected.name}</strong><a className="text-button" href={pdfUrl} target="_blank" rel="noopener noreferrer">Open PDF in new tab <ExternalLink size={13} /></a></div>
               <Suspense fallback={<p className="slides-list-message">Loading the PDF reader…</p>}><PdfReader key={pdfUrl} url={pdfUrl} name={selected.name} active={active}
                 positionKey={slideKey(activeId, listing.folderPath, selected.path)} /></Suspense>
-              <p className="slides-viewer-hint">Your page, zoom and exact reading position save in this browser as you read. Use Open PDF in new tab for your browser’s print and download options.</p>
+              <p className="slides-viewer-hint">Zoom with +/−, enter a percentage and press Enter or Apply, or pinch/Ctrl+wheel inside the PDF. Your reading position saves in this browser. Open PDF in new tab provides print and download options.</p>
             </> : <div className="slides-document-empty"><BookOpen size={38} /><h3>{savedFolder ? "Your next topic awaits." : "Bring your slides into focus."}</h3><p>{savedFolder ? "Choose a PDF from the list to start reading." : "Save a subject's folder path above. Its PDFs will open here, with your timer always in view."}</p></div>}
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { bindPdfZoom, parsePdfZoom, pdfZoomPercent } from "../lib/pdfZoom.js";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import * as pdfjs from "pdfjs-dist/build/pdf.mjs";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -57,8 +58,8 @@ export default function PdfReader({ url, positionKey, active, name }) {
       last.current = { page: location.pageNumber, scale: viewer.currentScale, left: location.left, top: location.top, windowY };
       setPage(viewer.currentPageNumber);
       if (!pageDirty.current) setPageInput(String(viewer.currentPageNumber));
-      setScale(Math.round(viewer.currentScale * 100));
-      if (!zoomDirty.current) setZoomInput(String(Math.round(viewer.currentScale * 100)));
+      setScale(pdfZoomPercent(viewer.currentScale));
+      if (!zoomDirty.current) setZoomInput(String(pdfZoomPercent(viewer.currentScale)));
       clearTimeout(timer); timer = setTimeout(persist, 150);
     });
     const restore = async () => {
@@ -81,12 +82,19 @@ export default function PdfReader({ url, positionKey, active, name }) {
         });
       } catch (failure) { if (alive) setError(failure.message); }
     };
+    const syncZoom = () => {
+      zoomDirty.current = false;
+      const percent = pdfZoomPercent(viewer.currentScale);
+      setScale(percent); setZoomInput(String(percent));
+    };
+    const unbindZoom = bindPdfZoom(container.current, { viewer,
+      enabled: () => alive && activeRef.current && !restoring.current, onZoom: syncZoom });
     current.current = { viewer, bus, restore, persist };
     bus.on("pagesinit", restore);
     viewer.setDocument(pdf); linkService.setDocument(pdf);
     return () => {
       alive = false; restoreVersion++; window.removeEventListener("scroll", outerScroll);
-      clearTimeout(timer); persist(); current.current = null;
+      clearTimeout(timer); persist(); unbindZoom(); current.current = null;
       viewer.setDocument(null); linkService.setDocument(null); controller.abort();
     };
   }, [loaded, positionKey]);
@@ -105,7 +113,18 @@ export default function PdfReader({ url, positionKey, active, name }) {
   const zoom = (value) => {
     zoomDirty.current = false;
     if (!ready || !current.current) return;
-    current.current.viewer.currentScale = Math.max(0.1, Math.min(10, (Number(String(value).replace("%", "")) || scale) / 100));
+    const viewer = current.current.viewer;
+    viewer.currentScale = parsePdfZoom(value, viewer.currentScale);
+    viewer.update();
+    setScale(pdfZoomPercent(viewer.currentScale)); setZoomInput(String(pdfZoomPercent(viewer.currentScale)));
+  };
+  const stepZoom = (direction) => {
+    if (!ready || !current.current) return;
+    zoomDirty.current = false;
+    const viewer = current.current.viewer;
+    if (direction > 0) viewer.increaseScale(); else viewer.decreaseScale();
+    viewer.update();
+    setScale(pdfZoomPercent(viewer.currentScale)); setZoomInput(String(pdfZoomPercent(viewer.currentScale)));
   };
   const search = (value, again = false) => {
     setQuery(value);
@@ -119,8 +138,14 @@ export default function PdfReader({ url, positionKey, active, name }) {
         onChange={(event) => { pageDirty.current = true; setPageInput(event.target.value); }} onBlur={() => { if (pageDirty.current) goToPage(pageInput); }} onKeyDown={(event) => { if (event.key === "Enter") goToPage(pageInput); }} /></label>
       <span>of {loaded?.pdf.numPages || "…"}</span>
       <button type="button" className="secondary-button" aria-label="Next PDF page" disabled={!ready || page >= loaded?.pdf.numPages} onClick={() => goToPage(page + 1)}>›</button>
-      <label>Zoom <input aria-label="PDF zoom percentage" type="number" min="10" max="1000" value={zoomInput} disabled={!ready}
-        onChange={(event) => { zoomDirty.current = true; setZoomInput(event.target.value); }} onBlur={() => { if (zoomDirty.current) zoom(zoomInput); }} onKeyDown={(event) => { if (event.key === "Enter") zoom(zoomInput); }} />%</label>
+      <div className="pdf-zoom-controls" role="group" aria-label="PDF zoom controls">
+        <button type="button" className="secondary-button" aria-label="Zoom out PDF" title="Zoom out" disabled={!ready || scale <= 10} onClick={() => stepZoom(-1)}>−</button>
+        <label>Zoom <input aria-label="PDF zoom percentage" title="Enter a percentage, then press Enter or Apply" type="number" step="any" min="10" max="1000" value={zoomInput} disabled={!ready}
+          onFocus={event => event.target.select()}
+          onChange={(event) => { zoomDirty.current = true; setZoomInput(event.target.value); }} onBlur={() => { if (zoomDirty.current) zoom(zoomInput); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); zoom(zoomInput); } }} />%</label>
+        <button type="button" className="secondary-button" aria-label="Zoom in PDF" title="Zoom in" disabled={!ready || scale >= 1000} onClick={() => stepZoom(1)}>+</button>
+        <button type="button" className="secondary-button" aria-label="Apply PDF zoom" disabled={!ready} onClick={() => zoom(zoomInput)}>Apply</button>
+      </div>
       <button type="button" className="secondary-button" disabled={!ready} onClick={() => { current.current.viewer.currentScaleValue = "page-width"; }}>Fit width</button>
       <label className="pdf-find">Find <input aria-label="Find in PDF" type="search" disabled={!ready} value={query} placeholder="Find a word…" onChange={(event) => search(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") search(query, true); }} /></label>
     </div>

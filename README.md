@@ -269,3 +269,9 @@ for browser printing, downloads, or password-protected PDFs.
 After updating, restart the normal launcher so it installs the PDF reader package.
 PDF rendering uses Mozilla PDF.js (Apache-2.0); its license is included in
 `public/licenses/pdfjs.txt`. The project’s MIT license remains unchanged.
+
+Use the PDF toolbar’s **− / +** buttons for manual zoom, or enter a percentage
+and press **Enter** or **Apply** (10%–1000%). Pinch or use **Ctrl/Cmd + wheel**
+over the PDF to zoom around the pointer. With the PDF focused, **Ctrl/Cmd + +**,
+**−**, and **0** zoom in, zoom out, and return to 100%. Normal scrolling still
+scrolls the document, and your chosen zoom is included in its reading bookmark.
