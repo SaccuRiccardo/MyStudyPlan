@@ -11,7 +11,7 @@ const fileSize = (size) => size >= 1024 * 1024 ? `${(size / (1024 * 1024)).toFix
 
 /** Read PDFs from a subject's local folder while the shared Pomodoro remains visible. */
 export default function SlidesReader({
-  subjects = [], subjectId, onSelectSubject, onSaveFolder,
+  active = true, subjects = [], subjectId, onSelectSubject, onSaveFolder,
   timer, onStartTimer, ambience, onOpenPomodoro,
 }) {
   const subject = subjects.find((item) => item.id === subjectId) || subjects[0];
@@ -80,6 +80,11 @@ export default function SlidesReader({
     document.addEventListener("fullscreenchange", change);
     return () => document.removeEventListener("fullscreenchange", change);
   }, []);
+
+  useEffect(() => {
+    if (!active && document.fullscreenElement === wrapperRef.current)
+      document.exitFullscreen().catch(() => {});
+  }, [active]);
 
   const files = listing?.subjectId === activeId ? listing.files : [];
   const visibleFiles = useMemo(() => files.filter((file) =>

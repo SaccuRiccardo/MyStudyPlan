@@ -315,3 +315,8 @@ resized and saved locally with the tool, including in backups. **Retry website
 lookup** refreshes metadata while preserving a manually chosen cover. Some sites,
 including sign-in-based apps, do not supply a usable public preview; the lookup
 uses a separate request and cannot access your signed-in browser session.
+
+When you switch workspace sections, the slides reader stays loaded in the
+background. Returning to **Slides** keeps your selected PDF, page, scroll position
+and zoom within the open app. Opening Timer settings from a fullscreen reader
+exits fullscreen and keeps the document ready for your return.

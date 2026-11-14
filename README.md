@@ -257,3 +257,8 @@ For sites without an automatic preview, edit the tool and paste a **Preview imag
 URL** or **Upload preview image** (PNG/JPG/WebP, up to 1 MB). Uploaded covers are
 saved locally. **Retry website lookup** checks the site again without replacing
 your manually chosen cover.
+
+When you switch workspace sections, the slides reader stays loaded in the
+background. Returning to **Slides** keeps your selected PDF, page, scroll position
+and zoom within the open app. Opening Timer settings from a fullscreen reader
+exits fullscreen and keeps the document ready for your return.

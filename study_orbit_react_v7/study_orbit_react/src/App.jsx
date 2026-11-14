@@ -60,6 +60,8 @@ export default function App() {
   const goalEditGroups = useRef(new Map());
   const [diarySubjectId, setDiarySubjectId] = useState(null);
   const [slidesSubjectId, setSlidesSubjectId] = useState(null);
+  const [slidesOpened, setSlidesOpened] = useState(false);
+  useEffect(() => { if (view === "slides") setSlidesOpened(true); }, [view]);
   const [diarySelection, setDiarySelection] = useState(null);
   const [diaryDirty, setDiaryDirty] = useState(false);
   const dismissed = useRef(new Set());
@@ -636,7 +638,9 @@ export default function App() {
         <div className={`workspace-grid ${view === "focus" ? "is-focus" : view === "slides" || view === "tools" ? "is-reader" : ""}`}>
           <div className="workspace-page">
             {view === "tools" && <ToolsLibrary tools={data.tools} onChange={(tools) => change((d) => { d.tools = tools; }, ["tools"])} />}
-            {view === "slides" && <SlidesReader
+            {/* Keep the native PDF viewer mounted so its page, scroll and zoom survive navigation. */}
+            {(slidesOpened || view === "slides") && <div className="slides-persistent-view" hidden={view !== "slides"}><SlidesReader
+              active={view === "slides"}
               subjects={data.subjects}
               subjectId={slidesSubjectId || data.subjects[0]?.id}
               onSelectSubject={setSlidesSubjectId}
@@ -645,7 +649,7 @@ export default function App() {
               onStartTimer={startPomodoroTimer}
               ambience={{ ...ambience, available: pomodoroPreferences.ambient !== "off" }}
               onOpenPomodoro={() => navigateView("pomodoro")}
-            />}
+            /></div>}
             {view === "pomodoro" && <Pomodoro timer={timer} preferences={pomodoroPreferences} onPreferences={updatePomodoroPreferences} ambience={ambience} onStart={startPomodoroTimer}
               subject={position.mode === "study" ? subjectName(activePhase, position.event.slot.subjectId) : null}
               sessionEnd={position.mode === "study" ? position.event.end : null} />}

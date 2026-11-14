@@ -449,3 +449,6 @@ button:disabled { transform: none; }
 .tool-editor-cover { margin-top:18px; }
 .tool-editor-cover .tool-preview { border-radius:10px; height:130px; margin-bottom:8px; }
 @media(max-width:600px) { .tools-grid { grid-template-columns:minmax(0,1fr); } .tools-toolbar { flex-wrap:wrap; } .tools-search { flex-basis:100%; } }
+
+/* A hidden reader retains its native PDF state without occupying a grid cell. */
+.slides-persistent-view[hidden] { display: none !important; }
