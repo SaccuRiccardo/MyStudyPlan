@@ -89,12 +89,19 @@ export default function PdfReader({ url, positionKey, active, name }) {
     };
     const unbindZoom = bindPdfZoom(container.current, { viewer,
       enabled: () => alive && activeRef.current && !restoring.current, onZoom: syncZoom });
+    const resizeObserver = new ResizeObserver(() => {
+      if (!alive || !activeRef.current || restoring.current || !container.current?.clientWidth || !container.current?.clientHeight) return;
+      // Refit only automatic zoom modes; keep a manually chosen percentage.
+      if (isNaN(viewer.currentScaleValue)) viewer.currentScaleValue = viewer.currentScaleValue;
+      viewer.update();
+    });
+    resizeObserver.observe(container.current);
     current.current = { viewer, bus, restore, persist };
     bus.on("pagesinit", restore);
     viewer.setDocument(pdf); linkService.setDocument(pdf);
     return () => {
       alive = false; restoreVersion++; window.removeEventListener("scroll", outerScroll);
-      clearTimeout(timer); persist(); unbindZoom(); current.current = null;
+      clearTimeout(timer); persist(); unbindZoom(); resizeObserver.disconnect(); current.current = null;
       viewer.setDocument(null); linkService.setDocument(null); controller.abort();
     };
   }, [loaded, positionKey]);

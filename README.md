@@ -275,3 +275,10 @@ and press **Enter** or **Apply** (10%–1000%). Pinch or use **Ctrl/Cmd + wheel*
 over the PDF to zoom around the pointer. With the PDF focused, **Ctrl/Cmd + +**,
 **−**, and **0** zoom in, zoom out, and return to 100%. Normal scrolling still
 scrolls the document, and your chosen zoom is included in its reading bookmark.
+
+The slides file list groups PDFs by subfolder, including nested folders. Click a
+folder's arrow to collapse or expand its PDFs; search by filename or folder name
+to see matching files in their folder structure. **Hide files / Show files** in
+the reader toolbar gives the PDF more room, including in fullscreen. The sidebar
+choice is remembered in this browser, and toggling it keeps your current PDF,
+page and manual zoom. **Fit width** adapts to the available space.

@@ -1,16 +1,17 @@
 import { slideKey, readSelectedSlide, saveSelectedSlide } from "../lib/slidePositions.js";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import {
   BookOpen, ExternalLink, FileText, FolderOpen, Maximize2, Minimize2,
-  Pause, Play, RefreshCw, RotateCcw, Search, SlidersHorizontal, Timer, Volume2, VolumeX,
+  PanelLeftClose, PanelLeftOpen, Pause, Play, RefreshCw, RotateCcw, Search, SlidersHorizontal, Timer, Volume2, VolumeX,
 } from "lucide-react";
 import { api } from "../lib/api.js";
+import SlidesFileTree from "./SlidesFileTree.jsx";
 
 const PdfReader = lazy(() => import("./PdfReader.jsx"));
 
 const clock = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 const intervalName = (mode) => mode === "focus" ? "Focus" : mode === "longBreak" ? "Long break" : "Short break";
-const fileSize = (size) => size >= 1024 * 1024 ? `${(size / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`;
+const SIDEBAR_KEY = "study-orbit:slides:sidebar-hidden";
 
 /** Read PDFs from a subject's local folder while the shared Pomodoro remains visible. */
 export default function SlidesReader({
@@ -30,6 +31,10 @@ export default function SlidesReader({
   const [error, setError] = useState("");
   const [viewerError, setViewerError] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = useState(() => {
+    try { return localStorage.getItem(SIDEBAR_KEY) === "true"; } catch { return false; }
+  });
+  const sidebarId = useId();
   const wrapperRef = useRef(null);
   const currentSubject = useRef(activeId);
   currentSubject.current = activeId;
@@ -92,9 +97,11 @@ export default function SlidesReader({
       document.exitFullscreen().catch(() => {});
   }, [active]);
 
+  useEffect(() => {
+    try { localStorage.setItem(SIDEBAR_KEY, String(sidebarHidden)); } catch { /* Keep working without browser storage. */ }
+  }, [sidebarHidden]);
+
   const files = listing?.subjectId === activeId ? listing.files : [];
-  const visibleFiles = useMemo(() => files.filter((file) =>
-    file.path.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())), [files, search]);
   const selected = files.find((file) => file.path === selectedPath);
   const pdfUrl = selected ? `${api.slidesUrl(activeId, selected.path)}&revision=${listingRevision}` : "";
 
@@ -159,7 +166,7 @@ export default function SlidesReader({
         <form onSubmit={saveFolder}>
           <label htmlFor="slidesFolderPath">Absolute folder path</label>
           <div className="slides-folder-input-row"><input id="slidesFolderPath" value={folderPath} disabled={saving} spellCheck={false} autoComplete="off" placeholder="Paste the full path to your slides folder" required onChange={(event) => setFolderPath(event.target.value)} /><button className="primary-button" type="submit" disabled={saving || !folderPath.trim()}><FolderOpen size={16} />{saving ? "Checking folder…" : "Save folder"}</button></div>
-          <p>Use a folder on the computer running Study Orbit. For example, <code>/Users/you/Documents/Slides</code> on Mac or <code>C:\Users\You\Documents\Slides</code> on Windows. PDFs in subfolders appear too. Your files stay in their original folder.</p>
+          <p>Use a folder on the computer running Study Orbit. For example, <code>/Users/you/Documents/Slides</code> on Mac or <code>C:\Users\You\Documents\Slides</code> on Windows. PDFs are grouped in collapsible subfolders. Your files stay in their original folder.</p>
         </form>
       </details>
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -168,6 +175,9 @@ export default function SlidesReader({
         <div className="slides-timer-bar" aria-label="Reader timer controls">
           <div className="slides-timer-copy"><Timer size={18} /><span>{intervalName(timer.mode)}<strong role="timer" aria-label={`${intervalName(timer.mode)}: ${clock(timer.remainingSeconds)} remaining`}>{clock(timer.remainingSeconds)}</strong></span></div>
           <div className="slides-timer-actions">
+            <button type="button" className="secondary-button" aria-label={sidebarHidden ? "Show PDF sidebar" : "Hide PDF sidebar"} aria-expanded={!sidebarHidden} aria-controls={sidebarId} onClick={() => setSidebarHidden(previous => !previous)}>
+              {sidebarHidden ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}{sidebarHidden ? "Show files" : "Hide files"}
+            </button>
             <button type="button" className="primary-button" onClick={() => {
               if (timer.running) { ambience.stopPreview(); timer.pause(); }
               else onStartTimer();
@@ -178,16 +188,13 @@ export default function SlidesReader({
             <button type="button" className="icon-button" aria-label={expanded ? "Exit fullscreen reader" : "Expand reader"} title={expanded ? "Exit fullscreen" : "Expand reader"} onClick={toggleExpanded}>{expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}</button>
           </div>
         </div>
-        <div className="slides-reader-layout">
-          <aside className="slides-file-sidebar" aria-label="PDF files">
+        <div className={`slides-reader-layout ${sidebarHidden ? "is-sidebar-hidden" : ""}`}>
+          <aside id={sidebarId} className="slides-file-sidebar" aria-label="PDF files" hidden={sidebarHidden}>
             <div className="slides-files-heading"><strong><FileText size={16} /> PDFs <span>{files.length}</span></strong><button className="icon-button tiny" type="button" aria-label="Refresh PDF files" title="Find new or changed PDFs" disabled={loading || saving || !savedFolder} onClick={refresh}><RefreshCw size={15} className={loading ? "is-loading" : ""} /></button></div>
             <label className="slides-search"><Search size={15} /><input aria-label="Search PDFs" type="search" placeholder="Find a PDF…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
             <div className="slides-file-list" aria-busy={loading}>
-              {loading ? <p className="slides-list-message" role="status">Reading your folder…</p> : visibleFiles.length ? visibleFiles.map((file) => (
-                <button key={file.path} type="button" className={`slides-file ${file.path === selectedPath ? "selected" : ""}`} aria-pressed={file.path === selectedPath} title={file.path} onClick={() => { setSelectedPath(file.path); setViewerError(""); }}>
-                  <FileText size={17} /><span><strong>{file.name}</strong><small>{file.path.includes("/") || file.path.includes("\\") ? file.path : fileSize(file.size)}</small></span>
-                </button>
-              )) : <p className="slides-list-message">{!savedFolder ? "Connect a folder above to see your PDFs." : search ? "No PDFs match your search." : "No PDFs found. Add slides to this folder, then refresh."}</p>}
+              {loading ? <p className="slides-list-message" role="status">Reading your folder…</p> : files.length ? <SlidesFileTree key={slideKey(activeId, listing.folderPath)} files={files} search={search} selectedPath={selectedPath}
+                onSelect={path => { setSelectedPath(path); setViewerError(""); }} /> : <p className="slides-list-message">{!savedFolder ? "Connect a folder above to see your PDFs." : "No PDFs found. Add slides to this folder, then refresh."}</p>}
             </div>
           </aside>
           <div className="slides-document">
