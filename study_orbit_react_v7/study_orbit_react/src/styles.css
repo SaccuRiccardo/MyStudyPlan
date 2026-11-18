@@ -366,7 +366,13 @@ button:disabled { transform: none; }
 .slides-timer-copy strong { color: var(--text); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
 .slides-timer-actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .slides-timer-actions .primary-button,.slides-timer-actions .secondary-button { min-height: 36px; padding: 9px 11px; font-size: 11px; }
-.slides-reader-layout { display: grid; grid-template-columns: 220px minmax(0,1fr); height: min(78dvh,1000px); min-height: 620px; }
+.slides-reader-layout { display: grid; grid-template-columns: var(--slides-sidebar-width,220px) 8px minmax(0,1fr); height: min(78dvh,1000px); min-height: 620px; }
+.slides-files-actions { display: flex; gap: 4px; }
+.slides-sidebar-resizer { position: relative; cursor: col-resize; touch-action: none; user-select: none; background: var(--card-muted); border-right: 1px solid var(--line); }
+.slides-sidebar-resizer::after { content: ''; position: absolute; top: 45%; left: 2px; width: 3px; height: 36px; border-radius: 4px; background: var(--faint); }
+.slides-sidebar-resizer:hover,.slides-sidebar-resizer:focus-visible { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: -2px; }
+.slides-sidebar-resizer[hidden] { display: none; }
+.slides-show-files { align-self: flex-start; margin: 8px 12px; }
 .slides-file-sidebar { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line); background: var(--card-muted); }
 .slides-files-heading { display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 9px; }
 .slides-files-heading strong { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; }
@@ -410,6 +416,7 @@ button:disabled { transform: none; }
 .slides-workspace:fullscreen .slides-pdf-frame { min-height: 0; }
 .slides-file:focus-visible,.slides-search:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
 @media(max-width:700px) {
+  .slides-sidebar-resizer { display: none; }
   .slides-reader-layout { grid-template-columns: minmax(0,1fr); grid-template-rows: 190px minmax(440px,1fr); height: auto; min-height: 0; }
   .slides-reader-layout.is-sidebar-hidden { grid-template-rows: minmax(440px,1fr); }
   .slides-file-sidebar { border-right: 0; border-bottom: 1px solid var(--line); }

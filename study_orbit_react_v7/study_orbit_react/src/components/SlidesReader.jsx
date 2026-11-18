@@ -12,6 +12,7 @@ const PdfReader = lazy(() => import("./PdfReader.jsx"));
 const clock = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 const intervalName = (mode) => mode === "focus" ? "Focus" : mode === "longBreak" ? "Long break" : "Short break";
 const SIDEBAR_KEY = "study-orbit:slides:sidebar-hidden";
+const SIDEBAR_WIDTH_KEY = "study-orbit:slides:sidebar-width";
 
 /** Read PDFs from a subject's local folder while the shared Pomodoro remains visible. */
 export default function SlidesReader({
@@ -35,6 +36,12 @@ export default function SlidesReader({
     try { return localStorage.getItem(SIDEBAR_KEY) === "true"; } catch { return false; }
   });
   const sidebarId = useId();
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try { const width = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY)); return Number.isFinite(width) && width >= 180 ? Math.min(480, width) : 220; } catch { return 220; }
+  });
+  const [sidebarMax, setSidebarMax] = useState(480);
+  const layoutRef = useRef(null);
+  const resizeDrag = useRef(null);
   const wrapperRef = useRef(null);
   const currentSubject = useRef(activeId);
   currentSubject.current = activeId;
@@ -100,6 +107,22 @@ export default function SlidesReader({
   useEffect(() => {
     try { localStorage.setItem(SIDEBAR_KEY, String(sidebarHidden)); } catch { /* Keep working without browser storage. */ }
   }, [sidebarHidden]);
+
+  useEffect(() => {
+    try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth)); } catch { /* Optional browser preference. */ }
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    const element = layoutRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => {
+      if (element.clientWidth) setSidebarMax(Math.max(180, Math.min(480, Math.floor(element.clientWidth * .6))));
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [!!subject]);
+
+  const resizeSidebar = width => setSidebarWidth(Math.max(180, Math.min(sidebarMax, Math.round(width))));
 
   const files = listing?.subjectId === activeId ? listing.files : [];
   const selected = files.find((file) => file.path === selectedPath);
@@ -188,16 +211,33 @@ export default function SlidesReader({
             <button type="button" className="icon-button" aria-label={expanded ? "Exit fullscreen reader" : "Expand reader"} title={expanded ? "Exit fullscreen" : "Expand reader"} onClick={toggleExpanded}>{expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}</button>
           </div>
         </div>
-        <div className={`slides-reader-layout ${sidebarHidden ? "is-sidebar-hidden" : ""}`}>
+        <div className={`slides-reader-layout ${sidebarHidden ? "is-sidebar-hidden" : ""}`} ref={layoutRef} style={{ "--slides-sidebar-width": `${Math.min(sidebarWidth, sidebarMax)}px` }}>
           <aside id={sidebarId} className="slides-file-sidebar" aria-label="PDF files" hidden={sidebarHidden}>
-            <div className="slides-files-heading"><strong><FileText size={16} /> PDFs <span>{files.length}</span></strong><button className="icon-button tiny" type="button" aria-label="Refresh PDF files" title="Find new or changed PDFs" disabled={loading || saving || !savedFolder} onClick={refresh}><RefreshCw size={15} className={loading ? "is-loading" : ""} /></button></div>
+            <div className="slides-files-heading"><strong><FileText size={16} /> PDFs <span>{files.length}</span></strong><div className="slides-files-actions"><button className="icon-button tiny" type="button" aria-label="Refresh PDF files" title="Find new or changed PDFs" disabled={loading || saving || !savedFolder} onClick={refresh}><RefreshCw size={15} className={loading ? "is-loading" : ""} /></button><button className="icon-button tiny" type="button" aria-label="Collapse PDF file list" title="Hide PDF file list" aria-controls={sidebarId} aria-expanded="true" onClick={() => setSidebarHidden(true)}><PanelLeftClose size={16} /></button></div></div>
             <label className="slides-search"><Search size={15} /><input aria-label="Search PDFs" type="search" placeholder="Find a PDF…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
             <div className="slides-file-list" aria-busy={loading}>
               {loading ? <p className="slides-list-message" role="status">Reading your folder…</p> : files.length ? <SlidesFileTree key={slideKey(activeId, listing.folderPath)} files={files} search={search} selectedPath={selectedPath}
                 onSelect={path => { setSelectedPath(path); setViewerError(""); }} /> : <p className="slides-list-message">{!savedFolder ? "Connect a folder above to see your PDFs." : "No PDFs found. Add slides to this folder, then refresh."}</p>}
             </div>
           </aside>
+          <div className="slides-sidebar-resizer" role="separator" aria-label="Resize PDF sidebar" aria-orientation="vertical" aria-controls={sidebarId} aria-valuemin={180} aria-valuemax={sidebarMax} aria-valuenow={Math.min(sidebarWidth, sidebarMax)} tabIndex={sidebarHidden ? -1 : 0} hidden={sidebarHidden} title="Drag to resize the file list. Arrow keys adjust width; double-click to reset."
+            onPointerDown={event => {
+              if (event.button !== 0) return;
+              event.preventDefault(); event.currentTarget.focus();
+              resizeDrag.current = { id: event.pointerId, x: event.clientX, width: Math.min(sidebarWidth, sidebarMax) };
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }}
+            onPointerMove={event => { const drag = resizeDrag.current; if (drag?.id === event.pointerId) resizeSidebar(drag.width + event.clientX - drag.x); }}
+            onPointerUp={event => { if (resizeDrag.current?.id === event.pointerId) { resizeDrag.current = null; event.currentTarget.releasePointerCapture(event.pointerId); } }}
+            onPointerCancel={() => { resizeDrag.current = null; }} onLostPointerCapture={() => { resizeDrag.current = null; }}
+            onDoubleClick={() => resizeSidebar(220)}
+            onKeyDown={event => {
+              const width = Math.min(sidebarWidth, sidebarMax), step = event.shiftKey ? 40 : 20;
+              if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+              event.preventDefault(); resizeSidebar(event.key === "Home" ? 180 : event.key === "End" ? sidebarMax : width + (event.key === "ArrowRight" ? step : -step));
+            }} />
           <div className="slides-document">
+            {sidebarHidden && <button className="slides-show-files secondary-button" type="button" aria-label="Reopen PDF file list" aria-controls={sidebarId} aria-expanded="false" onClick={() => setSidebarHidden(false)}><PanelLeftOpen size={16} />Show PDF files</button>}
             {selected ? <>
               <div className="slides-document-heading"><strong title={selected.path}>{selected.name}</strong><a className="text-button" href={pdfUrl} target="_blank" rel="noopener noreferrer">Open PDF in new tab <ExternalLink size={13} /></a></div>
               <Suspense fallback={<p className="slides-list-message">Loading the PDF reader…</p>}><PdfReader key={pdfUrl} url={pdfUrl} name={selected.name} active={active}
