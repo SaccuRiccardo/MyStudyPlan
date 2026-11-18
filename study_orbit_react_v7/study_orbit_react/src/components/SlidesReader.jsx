@@ -32,6 +32,7 @@ export default function SlidesReader({
   const [error, setError] = useState("");
   const [viewerError, setViewerError] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const [controlsTarget, setControlsTarget] = useState(null);
   const [sidebarHidden, setSidebarHidden] = useState(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) === "true"; } catch { return false; }
   });
@@ -127,6 +128,7 @@ export default function SlidesReader({
   const files = listing?.subjectId === activeId ? listing.files : [];
   const selected = files.find((file) => file.path === selectedPath);
   const pdfUrl = selected ? `${api.slidesUrl(activeId, selected.path)}&revision=${listingRevision}` : "";
+  const compact = expanded || sidebarHidden;
 
   useEffect(() => {
     if (selected && listing?.folderPath) saveSelectedSlide(slideKey(activeId, listing.folderPath), selected.path);
@@ -194,19 +196,21 @@ export default function SlidesReader({
       </details>
       {error && <p className="form-error" role="alert">{error}</p>}
 
-      <div className={`panel slides-workspace ${expanded ? "is-expanded" : ""}`} ref={wrapperRef}>
+      <div className={`panel slides-workspace ${expanded ? "is-expanded" : ""} ${compact ? "is-compact" : ""}`} ref={wrapperRef}>
         <div className="slides-timer-bar" aria-label="Reader timer controls">
+          {selected && <div className="slides-toolbar-file"><strong title={selected.path}>{selected.name}</strong><a className="text-button" aria-label="Open PDF in new tab" title="Open PDF in new tab" href={pdfUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /></a></div>}
           <div className="slides-timer-copy"><Timer size={18} /><span>{intervalName(timer.mode)}<strong role="timer" aria-label={`${intervalName(timer.mode)}: ${clock(timer.remainingSeconds)} remaining`}>{clock(timer.remainingSeconds)}</strong></span></div>
+          <div className="slides-pdf-toolbar-slot" ref={setControlsTarget} />
           <div className="slides-timer-actions">
-            <button type="button" className="secondary-button" aria-label={sidebarHidden ? "Show PDF sidebar" : "Hide PDF sidebar"} aria-expanded={!sidebarHidden} aria-controls={sidebarId} onClick={() => setSidebarHidden(previous => !previous)}>
+            <button type="button" className="secondary-button" title={sidebarHidden ? "Show PDF files" : "Hide PDF files"} aria-label={sidebarHidden ? "Show PDF sidebar" : "Hide PDF sidebar"} aria-expanded={!sidebarHidden} aria-controls={sidebarId} onClick={() => setSidebarHidden(previous => !previous)}>
               {sidebarHidden ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}{sidebarHidden ? "Show files" : "Hide files"}
             </button>
-            <button type="button" className="primary-button" onClick={() => {
+            <button type="button" className="primary-button" title={timer.running ? "Pause timer" : "Start timer"} onClick={() => {
               if (timer.running) { ambience.stopPreview(); timer.pause(); }
               else onStartTimer();
             }}>{timer.running ? <Pause size={16} /> : <Play size={16} />}{timer.running ? "Pause timer" : "Start timer"}</button>
             <button type="button" className="icon-button" aria-label="Reset reader timer" title="Reset interval" onClick={() => { ambience.stopPreview(); timer.reset(); }}><RotateCcw size={16} /></button>
-            <button type="button" className="secondary-button" onClick={onOpenPomodoro}><SlidersHorizontal size={15} />Timer settings</button>
+            <button type="button" className="secondary-button" title="Timer settings" onClick={onOpenPomodoro}><SlidersHorizontal size={15} />Timer settings</button>
             <button type="button" className="icon-button" aria-label={ambience.playing ? "Pause reader background sound" : "Play reader background sound"} title={ambience.available === false ? "Choose a background sound in Pomodoro" : ambience.playing ? "Pause sound" : "Play sound"} disabled={ambience.available === false} onClick={ambience.toggle}>{ambience.playing ? <Volume2 size={17} /> : <VolumeX size={17} />}</button>
             <button type="button" className="icon-button" aria-label={expanded ? "Exit fullscreen reader" : "Expand reader"} title={expanded ? "Exit fullscreen" : "Expand reader"} onClick={toggleExpanded}>{expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}</button>
           </div>
@@ -237,12 +241,9 @@ export default function SlidesReader({
               event.preventDefault(); resizeSidebar(event.key === "Home" ? 180 : event.key === "End" ? sidebarMax : width + (event.key === "ArrowRight" ? step : -step));
             }} />
           <div className="slides-document">
-            {sidebarHidden && <button className="slides-show-files secondary-button" type="button" aria-label="Reopen PDF file list" aria-controls={sidebarId} aria-expanded="false" onClick={() => setSidebarHidden(false)}><PanelLeftOpen size={16} />Show PDF files</button>}
             {selected ? <>
-              <div className="slides-document-heading"><strong title={selected.path}>{selected.name}</strong><a className="text-button" href={pdfUrl} target="_blank" rel="noopener noreferrer">Open PDF in new tab <ExternalLink size={13} /></a></div>
-              <Suspense fallback={<p className="slides-list-message">Loading the PDF reader…</p>}><PdfReader key={pdfUrl} url={pdfUrl} name={selected.name} active={active}
+              <Suspense fallback={<p className="slides-list-message">Loading the PDF reader…</p>}><PdfReader key={pdfUrl} url={pdfUrl} name={selected.name} active={active} compact={compact} controlsTarget={controlsTarget}
                 positionKey={slideKey(activeId, listing.folderPath, selected.path)} /></Suspense>
-              <p className="slides-viewer-hint">Zoom with +/−, enter a percentage and press Enter or Apply, or pinch/Ctrl+wheel inside the PDF. Your reading position saves in this browser. Open PDF in new tab provides print and download options.</p>
             </> : <div className="slides-document-empty"><BookOpen size={38} /><h3>{savedFolder ? "Your next topic awaits." : "Bring your slides into focus."}</h3><p>{savedFolder ? "Choose a PDF from the list to start reading." : "Save a subject's folder path above. Its PDFs will open here, with your timer always in view."}</p></div>}
           </div>
         </div>

@@ -1,5 +1,8 @@
 import { bindPdfZoom, parsePdfZoom, pdfZoomPercent } from "../lib/pdfZoom.js";
+import { bindPdfPageKeys } from "../lib/pdfPageKeys.js";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { SlidersHorizontal } from "lucide-react";
 import * as pdfjs from "pdfjs-dist/build/pdf.mjs";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -8,12 +11,22 @@ import { readSlidePosition, saveSlidePosition } from "../lib/slidePositions.js";
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 /** Cache the document while elsewhere in the app; save PDF coordinates rather than browser pixels. */
-export default function PdfReader({ url, positionKey, active, name }) {
+export default function PdfReader({ url, positionKey, active, name, compact = false, controlsTarget = null }) {
   const container = useRef(null), pages = useRef(null), current = useRef(null);
   const [loaded, setLoaded] = useState(null), [error, setError] = useState("");
   const [ready, setReady] = useState(false), [page, setPage] = useState(1), [scale, setScale] = useState(100);
   const [pageInput, setPageInput] = useState("1"), [zoomInput, setZoomInput] = useState("100");
   const [query, setQuery] = useState("");
+  const [controlsOpen, setControlsOpen] = useState(false);
+  useEffect(() => { setControlsOpen(false); }, [compact]);
+  useEffect(() => {
+    if (!controlsOpen) return;
+    const closeOutside = event => { if (!event.target.closest?.(".pdf-toolbar-menu")) setControlsOpen(false); };
+    const closeEscape = event => { if (event.key === "Escape" && !document.fullscreenElement) setControlsOpen(false); };
+    window.addEventListener("pointerdown", closeOutside);
+    window.addEventListener("keydown", closeEscape);
+    return () => { window.removeEventListener("pointerdown", closeOutside); window.removeEventListener("keydown", closeEscape); };
+  }, [controlsOpen]);
   const last = useRef(null), restoring = useRef(true), activeRef = useRef(active);
   const pageDirty = useRef(false), zoomDirty = useRef(false);
   activeRef.current = active;
@@ -89,6 +102,8 @@ export default function PdfReader({ url, positionKey, active, name }) {
     };
     const unbindZoom = bindPdfZoom(container.current, { viewer,
       enabled: () => alive && activeRef.current && !restoring.current, onZoom: syncZoom });
+    const unbindPageKeys = bindPdfPageKeys(window, { viewer,
+      enabled: () => alive && activeRef.current && !restoring.current && !!container.current?.clientWidth });
     const resizeObserver = new ResizeObserver(() => {
       if (!alive || !activeRef.current || restoring.current || !container.current?.clientWidth || !container.current?.clientHeight) return;
       // Refit only automatic zoom modes; keep a manually chosen percentage.
@@ -101,7 +116,7 @@ export default function PdfReader({ url, positionKey, active, name }) {
     viewer.setDocument(pdf); linkService.setDocument(pdf);
     return () => {
       alive = false; restoreVersion++; window.removeEventListener("scroll", outerScroll);
-      clearTimeout(timer); persist(); unbindZoom(); resizeObserver.disconnect(); current.current = null;
+      clearTimeout(timer); persist(); unbindZoom(); unbindPageKeys(); resizeObserver.disconnect(); current.current = null;
       viewer.setDocument(null); linkService.setDocument(null); controller.abort();
     };
   }, [loaded, positionKey]);
@@ -138,8 +153,7 @@ export default function PdfReader({ url, positionKey, active, name }) {
     current.current?.bus.dispatch("find", { source: window, type: again ? "again" : "", query: value,
       phraseSearch: true, caseSensitive: false, entireWord: false, highlightAll: true, findPrevious: false });
   };
-  return <div className="pdf-reader" aria-label={`PDF slides: ${name}`}>
-    <div className="pdf-controls">
+  const controls = <div className="pdf-controls" hidden={compact && !controlsOpen}>
       <button type="button" className="secondary-button" aria-label="Previous PDF page" disabled={!ready || page <= 1} onClick={() => goToPage(page - 1)}>‹</button>
       <label>Page <input aria-label="PDF page number" type="number" min="1" max={loaded?.pdf.numPages || 1} value={pageInput} disabled={!ready}
         onChange={(event) => { pageDirty.current = true; setPageInput(event.target.value); }} onBlur={() => { if (pageDirty.current) goToPage(pageInput); }} onKeyDown={(event) => { if (event.key === "Enter") goToPage(pageInput); }} /></label>
@@ -155,7 +169,12 @@ export default function PdfReader({ url, positionKey, active, name }) {
       </div>
       <button type="button" className="secondary-button" disabled={!ready} onClick={() => { current.current.viewer.currentScaleValue = "page-width"; }}>Fit width</button>
       <label className="pdf-find">Find <input aria-label="Find in PDF" type="search" disabled={!ready} value={query} placeholder="Find a word…" onChange={(event) => search(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") search(query, true); }} /></label>
-    </div>
+    </div>;
+  return <div className="pdf-reader" aria-label={`PDF slides: ${name}`}>
+    {compact && controlsTarget ? createPortal(<div className="pdf-toolbar-menu">
+      <button type="button" className="secondary-button" aria-label="PDF controls" title="Page, zoom and search controls" aria-expanded={controlsOpen} onClick={() => setControlsOpen(open => !open)}><SlidersHorizontal size={15} /><span>{page} / {loaded?.pdf.numPages || "…"}</span></button>
+      {controls}
+    </div>, controlsTarget) : controls}
     <div className="pdf-canvas-area">
       <div ref={container} className="pdf-scroll-container" tabIndex={0} aria-label="PDF pages" data-ready={ready}>
         <div ref={pages} className="pdfViewer" />

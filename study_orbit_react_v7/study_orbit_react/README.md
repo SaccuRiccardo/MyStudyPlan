@@ -342,7 +342,14 @@ choice is remembered in this browser, and toggling it keeps your current PDF,
 page and manual zoom. **Fit width** adapts to the available space.
 
 You can also collapse the PDF file list from its own header and reopen it with
-**Show PDF files** beside the document. Drag the divider at the file list’s right
+**Show files** in the top toolbar. Drag the divider at the file list’s right
 edge to adjust its width; the browser remembers your preference. Focus the
 divider and use Left/Right arrows for keyboard resizing (Home/End for limits),
 or double-click it to reset. On narrow screens, use the collapse/show controls.
+
+Use **Right / Left arrows** to move to the next / previous page while the slides
+view is active. Text fields, sidebar controls and modified shortcuts keep their
+normal keyboard behavior. Fullscreen and full-width reading (with the file list
+hidden) use one compact top bar for the filename, sidebar, timer and settings.
+Open **PDF controls** (the page count and sliders icon) for page, zoom and search
+controls. The separate filename bar and instructional footer have been removed.
