@@ -348,8 +348,13 @@ divider and use Left/Right arrows for keyboard resizing (Home/End for limits),
 or double-click it to reset. On narrow screens, use the collapse/show controls.
 
 Use **Right / Left arrows** to move to the next / previous page while the slides
-view is active. Text fields, sidebar controls and modified shortcuts keep their
-normal keyboard behavior. Fullscreen and full-width reading (with the file list
+view is active. **Up / Down arrows** scroll the PDF in small 40-pixel steps,
+without scrolling the surrounding app. Text fields, sidebar controls and modified
+shortcuts keep their normal keyboard behavior. **Ctrl/Cmd+F** focuses the reader’s
+search across the whole PDF, including pages that are not currently on screen.
+The search shows a match count; use **Enter / Shift+Enter** or its next/previous
+buttons to move between results. Search also opens directly in compact and
+fullscreen views. Fullscreen and full-width reading (with the file list
 hidden) use one compact top bar for the filename, sidebar, timer and settings.
 Open **PDF controls** (the page count and sliders icon) for page, zoom and search
 controls. The separate filename bar and instructional footer have been removed.

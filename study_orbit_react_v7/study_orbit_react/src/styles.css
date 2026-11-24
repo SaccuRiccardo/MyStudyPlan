@@ -481,7 +481,9 @@ button:disabled { transform: none; }
 .pdf-controls label { display:flex; align-items:center; gap:5px; }
 .pdf-controls input { width:60px; border:1px solid var(--line); border-radius:6px; padding:6px; color:var(--text); background:var(--card-muted); font:inherit; }
 .pdf-controls .secondary-button { padding:6px 10px; }
-.pdf-controls .pdf-find { margin-left:auto; }
+.pdf-controls .pdf-find { display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-left:auto; min-width:0; }
+.pdf-find-result { font-size:10px; color:var(--muted); }
+.pdf-controls .pdf-find > button { padding:6px; display:inline-flex; }
 .pdf-controls .pdf-find input { width:130px; }
 .pdf-canvas-area { position:relative; flex:1; min-height:0; background:#525659; }
 .pdf-scroll-container { position:absolute; inset:0; overflow:auto; overscroll-behavior:contain; }

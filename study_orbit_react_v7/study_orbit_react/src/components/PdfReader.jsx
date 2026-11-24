@@ -2,7 +2,7 @@ import { bindPdfZoom, parsePdfZoom, pdfZoomPercent } from "../lib/pdfZoom.js";
 import { bindPdfPageKeys } from "../lib/pdfPageKeys.js";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { SlidersHorizontal } from "lucide-react";
+import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import * as pdfjs from "pdfjs-dist/build/pdf.mjs";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -17,8 +17,16 @@ export default function PdfReader({ url, positionKey, active, name, compact = fa
   const [ready, setReady] = useState(false), [page, setPage] = useState(1), [scale, setScale] = useState(100);
   const [pageInput, setPageInput] = useState("1"), [zoomInput, setZoomInput] = useState("100");
   const [query, setQuery] = useState("");
+  const [findResult, setFindResult] = useState({ current: 0, total: 0, pending: false, notFound: false });
+  const findInput = useRef(null), findFocusPending = useRef(false);
+  const [findRequest, setFindRequest] = useState(0);
   const [controlsOpen, setControlsOpen] = useState(false);
   useEffect(() => { setControlsOpen(false); }, [compact]);
+  useLayoutEffect(() => {
+    if (!findFocusPending.current || !findInput.current || findInput.current.disabled) return;
+    findInput.current.focus(); findInput.current.select();
+    findFocusPending.current = false;
+  }, [findRequest, controlsOpen, compact]);
   useEffect(() => {
     if (!controlsOpen) return;
     const closeOutside = event => { if (!event.target.closest?.(".pdf-toolbar-menu")) setControlsOpen(false); };
@@ -34,6 +42,7 @@ export default function PdfReader({ url, positionKey, active, name, compact = fa
   useEffect(() => {
     let alive = true;
     setLoaded(null); setError(""); setReady(false); setQuery("");
+    setFindResult({ current: 0, total: 0, pending: false, notFound: false });
     const task = pdfjs.getDocument({ url, cMapUrl: "/api/pdfjs-assets/cmaps/", cMapPacked: true,
       standardFontDataUrl: "/api/pdfjs-assets/standard_fonts/", wasmUrl: "/api/pdfjs-assets/wasm/",
       isEvalSupported: false, enableXfa: false });
@@ -46,7 +55,7 @@ export default function PdfReader({ url, positionKey, active, name, compact = fa
 
   useLayoutEffect(() => {
     if (!loaded) return;
-    const { pdf, module: { PDFViewer, EventBus, PDFLinkService, PDFFindController } } = loaded;
+    const { pdf, module: { PDFViewer, EventBus, PDFLinkService, PDFFindController, FindState } } = loaded;
     const controller = new AbortController(), bus = new EventBus();
     const linkService = new PDFLinkService({ eventBus: bus, externalLinkTarget: 2, externalLinkRel: "noopener noreferrer" });
     const find = new PDFFindController({ eventBus: bus, linkService });
@@ -66,6 +75,12 @@ export default function PdfReader({ url, positionKey, active, name, compact = fa
       }
     };
     window.addEventListener("scroll", outerScroll, { passive: true });
+    bus.on("updatefindmatchescount", ({ matchesCount }) => {
+      if (alive) setFindResult(previous => ({ ...previous, ...matchesCount }));
+    });
+    bus.on("updatefindcontrolstate", ({ state, matchesCount }) => {
+      if (alive) setFindResult({ ...matchesCount, pending: state === FindState.PENDING, notFound: state === FindState.NOT_FOUND });
+    });
     bus.on("updateviewarea", ({ location }) => {
       if (!alive || !activeRef.current || restoring.current || !container.current?.clientWidth || !container.current?.clientHeight) return;
       last.current = { page: location.pageNumber, scale: viewer.currentScale, left: location.left, top: location.top, windowY };
@@ -103,7 +118,8 @@ export default function PdfReader({ url, positionKey, active, name, compact = fa
     const unbindZoom = bindPdfZoom(container.current, { viewer,
       enabled: () => alive && activeRef.current && !restoring.current, onZoom: syncZoom });
     const unbindPageKeys = bindPdfPageKeys(window, { viewer,
-      enabled: () => alive && activeRef.current && !restoring.current && !!container.current?.clientWidth });
+      enabled: () => alive && activeRef.current && !restoring.current && !!container.current?.clientWidth,
+      onFind: () => { findFocusPending.current = true; setControlsOpen(true); setFindRequest(previous => previous + 1); } });
     const resizeObserver = new ResizeObserver(() => {
       if (!alive || !activeRef.current || restoring.current || !container.current?.clientWidth || !container.current?.clientHeight) return;
       // Refit only automatic zoom modes; keep a manually chosen percentage.
@@ -148,10 +164,11 @@ export default function PdfReader({ url, positionKey, active, name, compact = fa
     viewer.update();
     setScale(pdfZoomPercent(viewer.currentScale)); setZoomInput(String(pdfZoomPercent(viewer.currentScale)));
   };
-  const search = (value, again = false) => {
+  const search = (value, again = false, previous = false) => {
     setQuery(value);
+    if (!again) setFindResult({ current: 0, total: 0, pending: !!value, notFound: false });
     current.current?.bus.dispatch("find", { source: window, type: again ? "again" : "", query: value,
-      phraseSearch: true, caseSensitive: false, entireWord: false, highlightAll: true, findPrevious: false });
+      phraseSearch: true, caseSensitive: false, entireWord: false, highlightAll: true, findPrevious: previous });
   };
   const controls = <div className="pdf-controls" hidden={compact && !controlsOpen}>
       <button type="button" className="secondary-button" aria-label="Previous PDF page" disabled={!ready || page <= 1} onClick={() => goToPage(page - 1)}>‹</button>
@@ -168,7 +185,15 @@ export default function PdfReader({ url, positionKey, active, name, compact = fa
         <button type="button" className="secondary-button" aria-label="Apply PDF zoom" disabled={!ready} onClick={() => zoom(zoomInput)}>Apply</button>
       </div>
       <button type="button" className="secondary-button" disabled={!ready} onClick={() => { current.current.viewer.currentScaleValue = "page-width"; }}>Fit width</button>
-      <label className="pdf-find">Find <input aria-label="Find in PDF" type="search" disabled={!ready} value={query} placeholder="Find a word…" onChange={(event) => search(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") search(query, true); }} /></label>
+      <div className="pdf-find">
+        <label>Find <input ref={findInput} aria-label="Find in PDF" title="Search all PDF pages (Ctrl/Cmd+F). Enter: next match; Shift+Enter: previous match." type="search" disabled={!ready} value={query} placeholder="Search whole PDF…" onChange={(event) => search(event.target.value)} onKeyDown={(event) => {
+          if (event.key === "Enter") { event.preventDefault(); search(query, true, event.shiftKey); }
+          else if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setControlsOpen(false); container.current?.focus({ preventScroll: true }); }
+        }} /></label>
+        <span className="pdf-find-result" role="status" aria-label="PDF search results">{query ? findResult.pending ? "Searching…" : findResult.total ? `${findResult.current} of ${findResult.total}` : findResult.notFound ? "No matches" : "Searching…" : ""}</span>
+        <button type="button" className="secondary-button" aria-label="Previous PDF search match" title="Previous match (Shift+Enter)" disabled={!ready || !query || !findResult.total} onClick={() => search(query, true, true)}><ChevronUp size={14} /></button>
+        <button type="button" className="secondary-button" aria-label="Next PDF search match" title="Next match (Enter)" disabled={!ready || !query || !findResult.total} onClick={() => search(query, true)}><ChevronDown size={14} /></button>
+      </div>
     </div>;
   return <div className="pdf-reader" aria-label={`PDF slides: ${name}`}>
     {compact && controlsTarget ? createPortal(<div className="pdf-toolbar-menu">
