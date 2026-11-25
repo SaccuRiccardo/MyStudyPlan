@@ -358,3 +358,9 @@ fullscreen views. Fullscreen and full-width reading (with the file list
 hidden) use one compact top bar for the filename, sidebar, timer and settings.
 Open **PDF controls** (the page count and sliders icon) for page, zoom and search
 controls. The separate filename bar and instructional footer have been removed.
+
+The **Skip focus / Skip break** button beside the slides timer advances to the
+next interval without leaving the PDF. It also works before starting an interval,
+so you can skip a break you already took. The next interval is paused and ready
+to start; skipped focus time does not count as a completed Pomodoro. In compact
+and fullscreen views, look for the skip-forward icon beside the countdown.

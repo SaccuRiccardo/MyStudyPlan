@@ -2,7 +2,7 @@ import { slideKey, readSelectedSlide, saveSelectedSlide } from "../lib/slidePosi
 import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import {
   BookOpen, ExternalLink, FileText, FolderOpen, Maximize2, Minimize2,
-  PanelLeftClose, PanelLeftOpen, Pause, Play, RefreshCw, RotateCcw, Search, SlidersHorizontal, Timer, Volume2, VolumeX,
+  PanelLeftClose, PanelLeftOpen, Pause, Play, RefreshCw, RotateCcw, Search, SkipForward, SlidersHorizontal, Timer, Volume2, VolumeX,
 } from "lucide-react";
 import { api } from "../lib/api.js";
 import SlidesFileTree from "./SlidesFileTree.jsx";
@@ -199,7 +199,9 @@ export default function SlidesReader({
       <div className={`panel slides-workspace ${expanded ? "is-expanded" : ""} ${compact ? "is-compact" : ""}`} ref={wrapperRef}>
         <div className="slides-timer-bar" aria-label="Reader timer controls">
           {selected && <div className="slides-toolbar-file"><strong title={selected.path}>{selected.name}</strong><a className="text-button" aria-label="Open PDF in new tab" title="Open PDF in new tab" href={pdfUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /></a></div>}
-          <div className="slides-timer-copy"><Timer size={18} /><span>{intervalName(timer.mode)}<strong role="timer" aria-label={`${intervalName(timer.mode)}: ${clock(timer.remainingSeconds)} remaining`}>{clock(timer.remainingSeconds)}</strong></span></div>
+          <div className="slides-timer-copy"><Timer size={18} /><span>{intervalName(timer.mode)}<strong role="timer" aria-label={`${intervalName(timer.mode)}: ${clock(timer.remainingSeconds)} remaining`}>{clock(timer.remainingSeconds)}</strong></span>
+            <button type="button" className="secondary-button slides-skip-interval" aria-label={timer.mode === "focus" ? "Skip focus interval" : "Skip break"} title={timer.mode === "focus" ? "Skip focus and prepare a short break" : "Skip break and prepare the next focus interval"} onClick={() => { ambience.stopPreview(); timer.skip(); }}><SkipForward size={16} />{timer.mode === "focus" ? "Skip focus" : "Skip break"}</button>
+          </div>
           <div className="slides-pdf-toolbar-slot" ref={setControlsTarget} />
           <div className="slides-timer-actions">
             <button type="button" className="secondary-button" title={sidebarHidden ? "Show PDF files" : "Hide PDF files"} aria-label={sidebarHidden ? "Show PDF sidebar" : "Hide PDF sidebar"} aria-expanded={!sidebarHidden} aria-controls={sidebarId} onClick={() => setSidebarHidden(previous => !previous)}>
